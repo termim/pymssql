@@ -473,6 +473,17 @@ class StoredProc(object):
         self.drop()
 
 
+def get_sql_server_version0(mssql_connection):
+    """
+    Returns the version of the SQL Server in use:
+    """
+    result = mssql_connection.execute_scalar(
+        "SELECT CAST(SERVERPROPERTY('ProductVersion') as varchar)"
+    )
+    ver_code = int(result.split('.')[0])
+    return str((result, ver_code))
+
+
 def get_sql_server_version(mssql_connection):
     """
     Returns the version of the SQL Server in use:
@@ -483,7 +494,7 @@ def get_sql_server_version(mssql_connection):
     ver_code = int(result.split('.')[0])
     if ver_code >= 12:
         major_version = 2014
-    if ver_code == 11:
+    elif ver_code == 11:
         major_version = 2012
     elif ver_code == 10:
         major_version = 2008

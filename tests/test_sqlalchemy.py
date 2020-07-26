@@ -1,11 +1,13 @@
 import unittest
+import pytest
 
-from .helpers import config, eq_, skip_test
+from .helpers import config, eq_#, skip_test
 
 try:
     import sqlalchemy as sa
 except ImportError:
-    skip_test('SQLAlchemy is not available')
+    pytestmark = pytest.mark.skip
+    #skip_test('SQLAlchemy is not available')
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 

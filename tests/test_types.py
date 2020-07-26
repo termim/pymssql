@@ -11,7 +11,7 @@ import sys
 import unittest
 import uuid
 
-from .helpers import get_sql_server_version
+from .helpers import get_sql_server_version, get_sql_server_version0
 
 import pytest
 
@@ -189,7 +189,7 @@ class TestTypes(unittest.TestCase):
 
     def test_time(self):
         if get_sql_server_version(self.conn) < 2008:
-            pytest.skip("TIME field type isn't supported by SQL Server versions prior to 2008.")
+            pytest.skip("TIME field type isn't supported by SQL Server versions prior to 2008. |%s|" % get_sql_server_version(self.conn))
         if self.conn.tds_version < 7.3:
             pytest.skip("TIME field type isn't supported by TDS protocol older than 7.3.")
         testval = datetime(2013, 1, 2, 3, 4, 5, 3000)
@@ -200,7 +200,7 @@ class TestTypes(unittest.TestCase):
 
     def test_datetime2(self):
         if get_sql_server_version(self.conn) < 2008:
-            pytest.skip("DATETIME2 field type isn't supported by SQL Server versions prior to 2008.")
+            pytest.skip("DATETIME2 field type isn't supported by SQL Server versions prior to 2008. |%s|" % get_sql_server_version0(self.conn))
         if self.conn.tds_version < 7.3:
             pytest.skip("DATETIME2 field type isn't supported by TDS protocol older than 7.3.")
         testval = datetime(2013, 1, 2, 3, 4, 5, 3000)

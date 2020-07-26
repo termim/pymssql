@@ -155,7 +155,7 @@ WINDOWS = False
 SYSTEM = platform.system()
 
 print("setup.py: platform.system() => %r" % SYSTEM)
-print("setup.py: platform.architecture() => %r" % (platform.architecture(),))
+#print("setup.py: platform.architecture() => %r" % (platform.architecture(),))
 if SYSTEM != 'Windows':
     print("setup.py: platform.libc_ver() => %r" % (platform.libc_ver(),))
 
@@ -202,10 +202,11 @@ else:
 
     libraries = ['sybdb']
 
-    with fs_cleanup(files=['a.out'], dirs=['tmp']):
-        with stdchannel_redirected(sys.stderr, os.devnull):
-            if compiler.has_function('clock_gettime', libraries=['rt']):
-                libraries.append('rt')
+    if sys.platform != 'darwin':
+        with fs_cleanup(files=['a.out'], dirs=['tmp']):
+            with stdchannel_redirected(sys.stderr, os.devnull):
+                if compiler.has_function('clock_gettime', libraries=['rt'], includes=['time.h']):
+                    libraries.append('rt')
 
 usr_local = '/usr/local'
 if osp.exists(usr_local):
@@ -403,7 +404,7 @@ def ext_modules():
     else:
         source_extension = 'pyx'
 
-    return [
+    ext_modules = [
         Extension('_mssql', [osp.join('src', '_mssql.%s' % source_extension)],
             extra_compile_args = _extra_compile_args,
             include_dirs = include_dirs,
@@ -415,7 +416,9 @@ def ext_modules():
             library_dirs = library_dirs
         ),
     ]
-
+    for e in ext_modules:
+        e.cython_directives = {'language_level': sys.version_info[0]}
+    return ext_modules
 
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
