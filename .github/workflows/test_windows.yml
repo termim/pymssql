@@ -46,11 +46,12 @@ jobs:
             docker version --format '{{.Server.APIVersion}}'
             docker version --format '{{.Client.APIVersion}}'
             docker ps --all --quiet --no-trunc --filter "label=3b3ac6"
-            docker network prune --force --filter "label=3b3ac6"
-            docker network create --label 3b3ac6 $DNNAME
+            #docker network prune --force --filter "label=3b3ac6"
+            #docker network create --label 3b3ac6 $DNNAME
 
             docker pull $DIMAGE
-            docker create --name $DNAME --label 12345 --network=$DNAME --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE
+            #docker create --name $DNAME --label 12345 --network=$DNAME --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE
+            docker create --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE
             docker ps --all
             docker start $DNAME
             docker ps --all
