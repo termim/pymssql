@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
+      #fail-fast: false
       matrix:
             python-version: [3.8]#[2, 3.5, 3.6, 3.7, 3.8]
             os: [windows-latest]
@@ -35,15 +35,41 @@ jobs:
 
     - name: test
       env:
-        DOCKER_IMAGE: mcr.microsoft.com/mssql/server:2017-latest
+        #DIMAGE: mcr.microsoft.com/mssql/server:2017-latest
+        DIMAGE: microsoft/mssql-server-windows-express
         DNAME: ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
+        DNNAME: github_network_${{ github.sha }}
         SA_PASSWORD: sqlServerPassw0rd
+      shell: bash
       run: |
-            docker pull microsoft/mssql-server-windows-express
-            #mcr.microsoft.com/mssql/server:2017-latest
-            docker create --name ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest --label 12345 --network="host" --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true mcr.microsoft.com/mssql/server:2017-latest
-            docker start ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
+            set -x
+            docker version --format '{{.Server.APIVersion}}'
+            docker version --format '{{.Client.APIVersion}}'
+            docker ps --all --quiet --no-trunc --filter "label=3b3ac6"
+            docker network prune --force --filter "label=3b3ac6"
+            docker network create --label 3b3ac6 $DNNAME
+
+            docker pull $DIMAGE
+            docker create --name $DNAME --label 12345 --network=$DNAME --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE
             docker ps --all
+            docker start $DNAME
+            docker ps --all
+            docker port $DNAME
+#docker version --format '{{.Server.APIVersion}}'
+#docker version --format '{{.Client.APIVersion}}'
+#docker ps --all --quiet --no-trunc --filter "label=3b3ac6"
+#docker network prune --force --filter "label=3b3ac6"
+#docker network create --label 3b3ac6 github_network_f0a7bdc13d1c40faabb25b8cc1a209a9
+
+#docker pull mcr.microsoft.com/mssql/server:2017-latest
+#docker create --name e29c8107bfa346b6a9a0ff23152e4f61_mcrmicrosoftcommssqlserver2017latest_51c117 --label 3b3ac6 --network github_network_f0a7bdc13d1c40faabb25b8cc1a209a9 --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true mcr.microsoft.com/mssql/server:2017-latest
+#docker start b779c3f3b5c1eeb1db0bdb21b61a2f781ab1280f7bfa4cab51f98446dd65e39f
+
+#docker ps --all --filter id=b779c3f3b5c1eeb1db0bdb21b61a2f781ab1280f7bfa4cab51f98446dd65e39f --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+#docker port b779c3f3b5c1eeb1db0bdb21b61a2f781ab1280f7bfa4cab51f98446dd65e39f
+#docker rm --force b779c3f3b5c1eeb1db0bdb21b61a2f781ab1280f7bfa4cab51f98446dd65e39f
+#docker network rm github_network_f0a7bdc13d1c40faabb25b8cc1a209a9
+
 
     #- name: Insatll MSSQL Server
       #run: |
@@ -75,8 +101,11 @@ jobs:
       if: ${{ always() }}
       env:
         DNAME: ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
+        $DNNAME: github_network_${{ github.sha }}
+      shell: bash
       run: |
-            docker rm ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
+            docker rm --force $DNAME
+            docker network rm $DNNAME
 #
     #- name: Archive wheels and sdist
       #uses: actions/upload-artifact@v2
