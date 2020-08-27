@@ -43,6 +43,7 @@ jobs:
       #shell: bash
       shell: powershell
       run: |
+            .\dev\start.ps1 -sa_password $env:SA_PASSWORD -ACCEPT_EULA Y -Verbose
             .\dev\install.ps1
             .\dev\start.ps1 -sa_password $SA_PASSWORD -ACCEPT_EULA Y -Verbose
             #set -x
