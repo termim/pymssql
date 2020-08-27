@@ -40,25 +40,30 @@ jobs:
         DNAME: ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
         DNNAME: github_network_${{ github.sha }}
         SA_PASSWORD: sqlServerPassw0rd
-      shell: bash
+      #shell: bash
+      shell: powershell
       run: |
-            set -x
-            docker version --format '{{.Server.APIVersion}}'
-            docker version --format '{{.Client.APIVersion}}'
-            docker info
-            docker start --help
-            docker ps --all --quiet --no-trunc --filter "label=3b3ac6"
-            #docker network prune --force --filter "label=3b3ac6"
-            #docker network create --label 3b3ac6 $DNNAME
+            .\dev\install.ps1
+            .\dev\start.ps1 -sa_password $SA_PASSWORD -ACCEPT_EULA Y -Verbose
+            #set -x
+            #docker version --format '{{.Server.APIVersion}}'
+            #docker version --format '{{.Client.APIVersion}}'
+            #docker info
+            #docker start --help
+            #docker ps --all --quiet --no-trunc --filter "label=3b3ac6"
+            ##docker network prune --force --filter "label=3b3ac6"
+            ##docker network create --label 3b3ac6 $DNNAME
+            ##docker pull $DIMAGE
+            ###docker create --name $DNAME --label 12345 --network=$DNAME --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE
+            ##did=`docker create --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE`
+            ###did=`docker run --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE`
+            ##docker ps --all
+            ##docker run --isolation=hyperv $DIMAGE
+            #docker ps --all
+            #docker port $DNAME
+            #
+            ##docker run -d -p 1433:1433 -v C:/temp/:C:/temp/ -e sa_password="SA_PASSWORD=sqlServerPassw0rd" -e ACCEPT_EULA=Y microsoft/mssql-server-windows-express
 
-            docker pull $DIMAGE
-            #docker create --name $DNAME --label 12345 --network=$DNAME --network-alias SQLServer -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE
-            did=`docker create --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE`
-            #did=`docker run --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE`
-            docker ps --all
-            docker run --isolation=hyperv $DIMAGE
-            docker ps --all
-            docker port $DNAME
 #docker version --format '{{.Server.APIVersion}}'
 #docker version --format '{{.Client.APIVersion}}'
 #docker ps --all --quiet --no-trunc --filter "label=3b3ac6"
