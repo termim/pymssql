@@ -56,7 +56,7 @@ jobs:
             did=`docker create --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE`
             #did=`docker run --name $DNAME --label 12345 -p 1433:1433  -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sqlServerPassw0rd" -e GITHUB_ACTIONS=true -e CI=true $DIMAGE`
             docker ps --all
-            docker run --isolation=hyperv $DNAME
+            docker run --isolation=hyperv $DIMAGE
             docker ps --all
             docker port $DNAME
 #docker version --format '{{.Server.APIVersion}}'
