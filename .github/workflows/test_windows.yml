@@ -43,9 +43,8 @@ jobs:
       #shell: bash
       shell: powershell
       run: |
-            .\dev\start.ps1 -sa_password $env:SA_PASSWORD -ACCEPT_EULA Y -Verbose
             .\dev\install.ps1
-            .\dev\start.ps1 -sa_password $SA_PASSWORD -ACCEPT_EULA Y -Verbose
+            .\dev\start.ps1 -sa_password $env:SA_PASSWORD -ACCEPT_EULA Y -Verbose
             #set -x
             #docker version --format '{{.Server.APIVersion}}'
             #docker version --format '{{.Client.APIVersion}}'
