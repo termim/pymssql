@@ -43,8 +43,19 @@ jobs:
       #shell: bash
       shell: powershell
       run: |
-            .\dev\install.ps1
-            .\dev\start.ps1 -sa_password $env:SA_PASSWORD -ACCEPT_EULA Y -Verbose
+            cd .\dev\windows
+            docker build . --file Dockerfile-mssql --tag my-image-name:latest
+            docker info
+            docker image ls
+            echo "docker ps -a"
+            docker ps -a
+            echo "docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-MSSQL:latest"
+            docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-MSSQL:latest
+            echo "docker ps -a"
+            docker ps -a
+
+            #.\dev\install.ps1
+            #.\dev\start.ps1 -sa_password $env:SA_PASSWORD -ACCEPT_EULA Y -Verbose
             #set -x
             #docker version --format '{{.Server.APIVersion}}'
             #docker version --format '{{.Client.APIVersion}}'
@@ -109,12 +120,13 @@ jobs:
     - name: Stop MSSQLServer
       if: ${{ always() }}
       env:
-        DNAME: ${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
+        DNAME: my-MSSQL
+        #${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
         $DNNAME: github_network_${{ github.sha }}
       shell: bash
       run: |
             docker rm --force $DNAME
-            docker network rm $DNNAME
+            #docker network rm $DNNAME
 #
     #- name: Archive wheels and sdist
       #uses: actions/upload-artifact@v2
