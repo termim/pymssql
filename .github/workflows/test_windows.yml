@@ -44,13 +44,13 @@ jobs:
       shell: powershell
       run: |
             cd .\dev\windows
-            docker build . --file Dockerfile-mssql --tag my-image-name:latest
+            docker build . --file Dockerfile-mssql --tag my-mssql:latest
             docker info
             docker image ls
             echo "docker ps -a"
             docker ps -a
-            echo "docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-MSSQL:latest"
-            docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-MSSQL:latest
+            echo "docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-mssql:latest"
+            docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-mssql:latest
             echo "docker ps -a"
             docker ps -a
 
@@ -120,7 +120,7 @@ jobs:
     - name: Stop MSSQLServer
       if: ${{ always() }}
       env:
-        DNAME: my-MSSQL
+        DNAME: my-mssql
         #${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
         $DNNAME: github_network_${{ github.sha }}
       shell: bash
