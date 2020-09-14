@@ -53,6 +53,8 @@ jobs:
             docker run -d -p 1433:1433 -e sa_password=sqlServerPassw0rd -e ACCEPT_EULA=Y my-mssql:latest
             echo "docker ps -a"
             docker ps -a
+            sqlcmd -S 127.0.0.1 -H localhost -U sa -P sqlServerPassw0rd -Q "select 1"
+            sqlcmd -S 127.0.0.1 -H localhost -U sa -P sqlServerPassw0rd -Q "select name from sys.databases"
 
             #.\dev\install.ps1
             #.\dev\start.ps1 -sa_password $env:SA_PASSWORD -ACCEPT_EULA Y -Verbose
@@ -120,7 +122,7 @@ jobs:
     - name: Stop MSSQLServer
       if: ${{ always() }}
       env:
-        DNAME: my-mssql
+        DNAME: my-mssql:latest
         #${{ github.sha }}_mcrmicrosoftcommssqlserver2017latest
         $DNNAME: github_network_${{ github.sha }}
       shell: bash
