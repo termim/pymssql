@@ -18,6 +18,9 @@ import pymssql
 
 
 class Config(object):
+    def __str__(self):
+        s = str(self.__dict__.items())
+        return s
     pass
 
 config = Config()
@@ -29,6 +32,7 @@ global_mssqlconn = None
 
 
 def mssqlconn(conn_properties=None):
+    print(config)
     return _mssql.connect(
         server=config.server,
         user=config.user,
