@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import time
 import pytest
 import pymssql
@@ -7,9 +8,10 @@ import pymssql
 
 @pytest.mark.timeout(120)
 @pytest.mark.xfail(strict=False)
-@pytest.mark.parametrize('to', range(2,20,2))
+@pytest.mark.parametrize('to', range(2,20,4))
 def test_remote_connect_timeout(to):
 
+    os.environ['TDSDUMP'] = '/tmp/tdsdump.log'
     t = time.time()
     try:
         pymssql.connect(server="www.google.com", port=81, user='username', password='password',
@@ -18,6 +20,9 @@ def test_remote_connect_timeout(to):
         pass
     t = time.time() - t
     print('remote: requested {} -> {} actual timeout'.format(to, t))
+    with open('/tmp/tdsdump.log') as f:
+        print('A'*80, '\n', f.read())
+    #os.remove('/tmp/tdsdump.log')
     assert t == pytest.approx(to, 5), "{} != {}".format(t, to)
 
 
@@ -46,18 +51,18 @@ class ThreadedTCPRequestHandler(SS.BaseRequestHandler):
 
 
 class ThreadedTCPServer(SS.ThreadingMixIn, SS.TCPServer):
-    request_queue_size=0
     pass
 
 
 @pytest.mark.timeout(120)
 @pytest.mark.xfail(strict=False)
-@pytest.mark.parametrize('to', range(2,20,2))
+@pytest.mark.parametrize('to', range(2,20,4))
 def test_local_connect_timeout(to):
 
     global gdt
     global gconnections
 
+    os.environ['TDSDUMP'] = '/tmp/tdsdump.log'
     HOST, PORT = "localhost", 0
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     ip, port = server.server_address
@@ -66,6 +71,7 @@ def test_local_connect_timeout(to):
     server_thread.start()
     #print("Server loop running in thread:", server_thread.name)
 
+    gdt = 0
     gconnections = 0
     t = time.time()
     try:
@@ -75,6 +81,9 @@ def test_local_connect_timeout(to):
         pass
     t = time.time() - t
     print('local: requested {} -> {} actual timeout ({} server side, n={})'.format(to, t, gdt, gconnections))
+    with open('/tmp/tdsdump.log') as f:
+        print('A'*80, '\n', f.read())
+    #os.remove('/tmp/tdsdump.log')
     assert t == pytest.approx(to, 5), "{} != {}".format(t, to)
 
     server.shutdown()
