@@ -19,3 +19,55 @@ def test_remote_connect_timeout(to):
     t = time.time() - t
     print('remote: requested {} -> {} actual timeout'.format(to, t))
     assert t == pytest.approx(to, 5), "{} != {}".format(t, to)
+
+
+
+import threading
+import sys
+if sys.version_info[0] == 2:
+    import SocketServer as SS
+else:
+    import socketserver as SS
+
+gdt = 0
+
+class ThreadedTCPRequestHandler(SS.BaseRequestHandler):
+
+    def handle(self):
+        global gdt
+        t = time.time()
+        data = 1
+        while data:
+            data = self.request.recv(1024)
+        gdt = time.time() - t
+
+
+class ThreadedTCPServer(SS.ThreadingMixIn, SS.TCPServer):
+    request_queue_size=0
+    pass
+
+
+@pytest.mark.xfail(strict=False)
+@pytest.mark.parametrize('to', range(2,20,2))
+def test_local_connect_timeout(to):
+
+    HOST, PORT = "localhost", 0
+    server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+    ip, port = server.server_address
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+    print("Server loop running in thread:", server_thread.name)
+
+    t = time.time()
+    try:
+        pymssql.connect(server=HOST, port=port, user='username', password='password',
+                        login_timeout=to)
+    except pymssql.OperationalError:
+        pass
+    t = time.time() - t
+    print('local: requested {} -> {} actual timeout ({} server side)'.format(to, t, gdt))
+    assert t == pytest.approx(to, 5), "{} != {}".format(t, to)
+
+    server.shutdown()
+    server.server_close()
