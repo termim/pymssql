@@ -45,7 +45,7 @@ pushd freetds
 ./configure --enable-msdblib \
   --prefix=/usr --sysconfdir=/etc/freetds --with-tdsver=7.1 \
   --disable-apps --disable-server --disable-pool --disable-odbc \
-  --with-openssl=no --with-gnutls=no
+  --with-openssl=no --with-gnutls=no --enable-shared=no
 
 make install
 popd
