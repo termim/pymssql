@@ -41,6 +41,68 @@ print("library_dirs=", library_dirs)
 
 _extra_compile_args = ['-DMSDBLIB']
 
+from distutils import ccompiler
+from distutils.errors import *
+
+def has_function(self, funcname, includes=None, include_dirs=None,
+                 libraries=None, library_dirs=None):
+    """Return a boolean indicating whether funcname is supported on
+    the current platform.  The optional arguments can be used to
+    augment the compilation environment.
+    """
+    # this can't be included at module scope because it tries to
+    # import math which might not be available at that point - maybe
+    # the necessary logic should just be inlined?
+    import tempfile
+    if includes is None:
+        includes = []
+    if include_dirs is None:
+        include_dirs = []
+    if libraries is None:
+        libraries = []
+    if library_dirs is None:
+        library_dirs = []
+    fd, fname = tempfile.mkstemp(".c", funcname, text=True)
+    f = os.fdopen(fd, "w")
+    try:
+        for incl in includes:
+            f.write("""#include "%s"\n""" % incl)
+        f.write("""\
+int main (int argc, char **argv) {
+%s();
+return 0;
+}
+""" % funcname)
+    finally:
+        f.close()
+    try:
+        objects = self.compile([fname], include_dirs=include_dirs)
+    except CompileError:
+        return False
+    finally:
+        os.remove(fname)
+
+    try:
+        self.link_executable(objects, "a.out",
+                             libraries=libraries,
+                             library_dirs=library_dirs)
+    except (LinkError, TypeError):
+        return False
+    else:
+        os.remove("a.out")
+    finally:
+        for fn in objects:
+            os.remove(fn)
+
+    return True
+
+compiler = ccompiler.new_compiler()
+import types
+compiler.has_function = types.MethodType(has_function, compiler)
+
+if compiler.has_function('clock_gettime', libraries=['rt']):
+    libraries.append('rt')
+
 extensions = [
     Extension("*", ["src/*.pyx"],
               extra_compile_args = _extra_compile_args,
