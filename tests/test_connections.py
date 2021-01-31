@@ -8,7 +8,7 @@ from os import path, makedirs, environ
 import re
 import unittest
 
-import _mssql
+from pymssql import _mssql
 
 from .helpers import config, skip_test, mssqlconn
 server = config.server
