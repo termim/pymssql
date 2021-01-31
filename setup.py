@@ -34,7 +34,7 @@ from distutils import log
 from distutils.cmd import Command
 from distutils.command.clean import clean as _clean
 
-have_c_files = exists('src/_mssql.c') and exists('src/pymssql.c')
+have_c_files = exists('pymssql/_mssql.c') and exists('pymssql/pymssql.c')
 if have_c_files:
     from distutils.command.build_ext import build_ext as _build_ext
 else:
@@ -236,14 +236,14 @@ def ext_modules():
         source_extension = 'pyx'
 
     ext_modules = [
-        Extension('pymssql._mssql', [join('src', 'pymssql', '_mssql.%s' % source_extension)],
+        Extension('pymssql._mssql', [join('pymssql', '_mssql.%s' % source_extension)],
             extra_compile_args = [ '-DMSDBLIB' ],
-            include_dirs = include_dirs + ['src'],
+            include_dirs = include_dirs,
             library_dirs = library_dirs,
         ),
-        Extension('pymssql.pymssql', [join('src', 'pymssql', 'pymssql.%s' % source_extension)],
+        Extension('pymssql.pymssql', [join('pymssql', 'pymssql.%s' % source_extension)],
             extra_compile_args = [ '-DMSDBLIB' ],
-            include_dirs = include_dirs + ['src'],
+            include_dirs = include_dirs,
             library_dirs = library_dirs,
         ),
     ]
@@ -274,7 +274,7 @@ class PyTest(TestCommand):
 setup(
     name  = 'pymssql',
     use_scm_version = {
-        "write_to": "src/pymssql/version.h",
+        "write_to": "pymssql/version.h",
         "write_to_template": '#define PYMSSQL_VERSION "{version}"',
         "local_scheme": "no-local-version",
     },
@@ -316,5 +316,4 @@ setup(
     tests_require=['psutil', 'pytest', 'pytest-timeout'],
     ext_modules = ext_modules(),
     packages = [ 'pymssql'],
-    package_dir = {'': 'src'},
 )
