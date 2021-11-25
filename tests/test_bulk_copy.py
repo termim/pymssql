@@ -20,7 +20,9 @@ complex_table = """
         col_float float,
         col_datetime datetime,
         col_bit bit,
-        col_varchar varchar(50)
+        col_varchar varchar(50),
+        col_date DATE,
+        col_time time
     )
 """ % tablename
 
@@ -36,7 +38,8 @@ class TestTypes(unittest.TestCase):
 
     def expect_simple_table_content(self, query, content):
         self.conn._conn.execute_query(query)
-        assert [(row[0], row[1], row[2]) for row in self.conn._conn] == content
+        result = [(row[0], row[1], row[2]) for row in self.conn._conn]
+        assert result == content, f"{result} != {content}"
 
     def expect_row_count(self, expected_row_count):
         self.conn._conn.execute_query('select count(*) from pymssql')
@@ -49,6 +52,12 @@ class TestTypes(unittest.TestCase):
 
     def test_simple_table_bulk_copy(self):
         self.simple_table_test([(1, 2, 3), (4, 5, 6)])
+
+    def test_nvarchar(self):
+        self.conn._conn.execute_non_query(f"CREATE TABLE {tablename} (a1 INT,  a2 INT,  a3 NVARCHAR(100))")
+        data = [(1, 11, "foo1"), (2, 22, "bar1")]
+        self.conn.bulk_copy(tablename, data)
+        self.expect_simple_table_content(f'select top 2 * from {tablename}', data)
 
     def test_lots_of_rows_single_batch(self):
         self.conn._conn.execute_non_query(simple_table)
@@ -127,7 +136,19 @@ class TestTypes(unittest.TestCase):
 
     def test_uniqueness_failure(self):
         self.conn._conn.execute_non_query(complex_table)
-
+        self.conn._conn.execute_query('SELECT COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name=%s', (tablename, ))
+        ct = dict()
+        for row in self.conn._conn:
+            print(row)
+            ct[row['ORDINAL_POSITION']] = { k: row[k] for k in ('COLUMN_NAME', 'DATA_TYPE') }
+        print(ct)
+        self.conn._conn.execute_query('SELECT COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE '
+                                        'FROM INFORMATION_SCHEMA.COLUMNS '
+                                        'WHERE table_name=%s '
+                                        'AND ORDINAL_POSITION IN %s', (tablename, [3, 4, 5, 6, 7]))
+        print('='*50)
+        ct = { row['ORDINAL_POSITION']: { k: row[k] for k in ('COLUMN_NAME', 'DATA_TYPE') } for row in self.conn._conn }
+        print(ct)
         rows = [
             (1.2000000476837158, 3.4, datetime.datetime(year=2020, month=1, day=2, hour=3, minute=4, second=5), True, "Hello World"),
             (1.2000000476837158, 7.8, datetime.datetime(year=2021, month=2, day=3, hour=4, minute=5, second=6), False, "Hello World!"),

@@ -319,14 +319,10 @@ cdef class Connection:
         except Exception, e:
             raise OperationalError('Cannot begin transaction: ' + str(e.args[0]))
 
-    cpdef bulk_copy(self,
-                    table_name,
-                    elements,
-                    column_ids=None,
-                    batch_size=1000,
-                    tablock=False,
-                    check_constraints=False,
-                    fire_triggers=False):
+    cpdef bulk_copy(self, table_name, elements, column_ids=None,
+                                    batch_size=1000, tablock=False,
+                                    check_constraints=False, fire_triggers=False,
+                                    check_types=True):
         cdef int batch_counter = 0
         cdef _mssql.MSSQLConnection conn = self._conn
         conn.bcp_init(table_name)
@@ -337,13 +333,22 @@ cdef class Connection:
             conn.bcp_hint(<BYTE*> CHECK_CONSTRAINTS, CHECK_CONSTRAINTS_LEN)
         if fire_triggers:
             conn.bcp_hint(<BYTE*> FIRE_TRIGGERS, FIRE_TRIGGERS_LEN)
+        column_info = None
+        if check_types:
+                conn.execute_query(
+                    'SELECT COLUMN_NAME, ORDINAL_POSITION, DATA_TYPE '
+                        'FROM INFORMATION_SCHEMA.COLUMNS '
+                       'WHERE table_name=%s ', (table_name, ))
+                column_info = { row['ORDINAL_POSITION']:
+                                        { k: row[k] for k in ('COLUMN_NAME', 'DATA_TYPE') }
+                                    for row in conn }
 
         for element in elements:
             if batch_counter == batch_size:
                 conn.bcp_batch()
                 batch_counter = 0
 
-            self._conn.bcp_sendrow(element, column_ids)
+            self._conn.bcp_sendrow(element, column_ids, column_info)
             batch_counter += 1
         conn.bcp_done()
 

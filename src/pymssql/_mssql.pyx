@@ -1521,7 +1521,7 @@ cdef class MSSQLConnection:
         if rows_inserted == -1:
             raise_MSSQLDatabaseException(self)
 
-    cpdef bcp_sendrow(self, object element, object column_ids):
+    cpdef bcp_sendrow(self, object element, object column_ids, object column_info):
         cdef DBPROCESS *dbproc = self.dbproc
         cdef RETCODE rtc
         cdef int length = len(element)
@@ -1532,14 +1532,18 @@ cdef class MSSQLConnection:
         cdef int column_id = -1
 
         log("_mssql.MSSQLBCPContext.bcp_sendrow()")
+        if column_ids is None:
+            column_ids = range(1, len(element) + 1)
+        elif len(column_ids) < len(element):
+            raise ValueError(f"Too few column IDs provided: {len(column_ids)} < {len(element)}")
 
         try:
             datas = <BYTE**> PyMem_Malloc(length * sizeof(BYTE *))
             memset(datas, 0, length * sizeof(BYTE *))
 
             try:
-                for idx, col_value in enumerate(element):
-                    if column_ids is None:
+                for idx, (column_id, col_value) in enumerate(zip(column_ids, element)):
+                    if column_info is None:
                         column_id = idx + 1
                     else:
                         try:
@@ -1549,6 +1553,7 @@ cdef class MSSQLConnection:
                     if col_value is None:
                         db_type = 0
                         is_none = 1
+                    elif column_info
                     else:
                         db_type = py2db_type(type(col_value), col_value)
                         is_none = 0
