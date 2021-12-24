@@ -342,6 +342,8 @@ cdef class Connection:
                 column_info = { row['ORDINAL_POSITION']:
                                         { k: row[k] for k in ('COLUMN_NAME', 'DATA_TYPE') }
                                     for row in conn }
+                for pos, cinfo in column_info.items():
+                    print(f"pos={pos} {cinfo}")
 
         for element in elements:
             if batch_counter == batch_size:

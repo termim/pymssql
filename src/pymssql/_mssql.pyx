@@ -24,8 +24,8 @@ This is an effort to convert the pymssql low-level C module to Cython.
 # MA  02110-1301  USA
 #
 
-DEF PYMSSQL_DEBUG = 0
-DEF PYMSSQL_DEBUG_ERRORS = 0
+DEF PYMSSQL_DEBUG = 1
+DEF PYMSSQL_DEBUG_ERRORS = 1
 DEF PYMSSQL_CHARSETBUFSIZE = 100
 DEF MSSQLDB_MSGSIZE = 1024
 DEF PYMSSQL_MSGSIZE = (MSSQLDB_MSGSIZE * 8)
@@ -145,6 +145,7 @@ SQLDATETIME2 = 42
 
 cdef dict DBTYPES = {
     'bool': SQLBITN,
+    'bytes': SQLVARBINARY,
     'str': SQLVARCHAR,
     'unicode': SQLVARCHAR,
     'Decimal': SQLDECIMAL,
@@ -914,7 +915,7 @@ cdef class MSSQLConnection:
         cdef DBTYPEINFO decimal_type_info
 
         IF PYMSSQL_DEBUG == 1:
-            sys.stderr.write("convert_python_value: value = %r; dbtype = %d" % (value, dbtype[0]))
+            sys.stderr.write("convert_python_value: value = %r; dbtype = %d\n" % (value, dbtype[0]))
 
         if value is None:
             dbValue[0] = <BYTE *>NULL
@@ -1000,9 +1001,9 @@ cdef class MSSQLConnection:
             dbValue[0] = <BYTE *>decValue
 
             IF PYMSSQL_DEBUG == 1:
-                fprintf(stderr, "convert_python_value: Converted value to DBDECIMAL with length = %d\n", length[0])
+                sys.stderr.write(f"convert_python_value: Converted value to DBDECIMAL with length = {length[0]}\n")
                 for i in range(0, 35):
-                    fprintf(stderr, "convert_python_value: dbValue[0][%d] = %d\n", i, dbValue[0][i])
+                    sys.stderr.write(f"convert_python_value: dbValue[0][{i}] = {dbValue[0][i]}\n")
 
             return 0
 
@@ -1022,11 +1023,14 @@ cdef class MSSQLConnection:
 
             if strlen(self._charset) > 0 and type(value) is unicode:
                 value = value.encode(self.charset)
+                #value = value.encode('utf-16')#self.charset)
+                print(f"convert_python_value: {self.charset} encoded value = {value}", file=sys.stderr)
 
             strValue = <char *>PyMem_Malloc(len(value) + 1)
             tmp = value
             strncpy(strValue, tmp, len(value) + 1)
             strValue[ len(value) ] = b'\0';
+            length[0] = len(value)
             dbValue[0] = <BYTE *>strValue
             return 0
 
@@ -1237,7 +1241,7 @@ cdef class MSSQLConnection:
 
             log(query_string_cstr)
             if self.debug_queries:
-                sys.stderr.write("#%s#\n" % query_string)
+                sys.stderr.write("query_string= #%s#\n" % query_string)
 
             # Prepare the query buffer
             dbcmd(self.dbproc, query_string_cstr)
@@ -1375,9 +1379,8 @@ cdef class MSSQLConnection:
             else:
                 IF PYMSSQL_DEBUG == 1:
                     global _row_count
-                    fprintf(stderr, 'Processing row %d, column %d,' \
-                        'Got data=%x, coltype=%d, len=%d\n', _row_count, col,
-                        data, col_type, len)
+                    sys.stderr.write(f'Processing row {_row_count}, column {col},' \
+                        f'Got data={data}, coltype={col_type}, len={len}\n')
                 value = self.convert_db_value(data, col_type, len)
 
             if row_format == _ROW_FORMAT_TUPLE:
@@ -1484,6 +1487,7 @@ cdef class MSSQLConnection:
         log("_mssql.MSSQLBCPContext.bcp_bind()")
 
         self.convert_python_value(value, data, &column_db_type, &length)
+        print(f"_mssql.MSSQLBCPContext.bcp_bind() column_db_type={column_db_type} length={length} data={data[0]}")
         if is_none:
             # It doesn't matter which vartype we choose here since we are passing NULL.
             rtc = bcp_bind(
@@ -1553,7 +1557,7 @@ cdef class MSSQLConnection:
                     if col_value is None:
                         db_type = 0
                         is_none = 1
-                    elif column_info
+                    #elif column_info
                     else:
                         db_type = py2db_type(type(col_value), col_value)
                         is_none = 0

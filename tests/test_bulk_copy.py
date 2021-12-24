@@ -30,7 +30,7 @@ complex_table = """
 @mssql_server_required
 class TestTypes(unittest.TestCase):
     def setUp(self):
-        self.conn = pymssqlconn()
+        self.conn = pymssqlconn(charset='UTF-8')
         drop_table(self.conn._conn, tablename)
 
     def tearDown(self):
@@ -53,9 +53,23 @@ class TestTypes(unittest.TestCase):
     def test_simple_table_bulk_copy(self):
         self.simple_table_test([(1, 2, 3), (4, 5, 6)])
 
+    def test_nvarchar_size(self):
+        self.conn._conn.execute_non_query(f"CREATE TABLE {tablename} (a1 CHAR(100),  a2 VARCHAR(100),  a3 NVARCHAR(100))")
+        data = [ ( "1привет", "11привет", "foo11привет" ) ]
+        self.conn.bulk_copy(tablename, data)
+        self.expect_simple_table_content(f'select top 2 * from {tablename}', data)
+
+    def test_nvarchar_unicode(self):
+        self.conn._conn.execute_non_query(f"CREATE TABLE {tablename} (a3 NVARCHAR(100))")
+        data = [ ( "nn", ) ]
+        self.conn.bulk_copy(tablename, data)
+        self.conn._conn.execute_query(f'select top 2 * from {tablename}')
+        result = [row[0] for row in self.conn._conn]
+        assert result == data, f"{result} != {data}"
+
     def test_nvarchar(self):
-        self.conn._conn.execute_non_query(f"CREATE TABLE {tablename} (a1 INT,  a2 INT,  a3 NVARCHAR(100))")
-        data = [(1, 11, "foo1"), (2, 22, "bar1")]
+        self.conn._conn.execute_non_query(f"CREATE TABLE {tablename} (a1 INT,  a2 VARCHAR(100),  a3 NVARCHAR(100))")
+        data = [ ( 1, "bar", "foo1" ) ]
         self.conn.bulk_copy(tablename, data)
         self.expect_simple_table_content(f'select top 2 * from {tablename}', data)
 
