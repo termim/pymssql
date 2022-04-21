@@ -39,7 +39,7 @@ jobs:
 
     - name: build wheel and sdist
       env:
-            LDFLAGS: -L/usr/local/opt/openssl@1.1/lib -L/usr/local/opt/libiconv/lib
+            LDFLAGS: -L/usr/local/opt/openssl@1.1/lib /usr/local/opt/libiconv/lib/libiconv.a
             CPPFLAGS: -I/usr/local/opt/openssl@1.1/include -I/usr/local/opt/libiconv/include
             PKG_CONFIG_PATH: /usr/local/opt/openssl@1.1/lib/pkgconfig
       run: |
