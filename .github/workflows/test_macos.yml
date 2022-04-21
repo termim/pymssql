@@ -54,8 +54,7 @@ jobs:
                 --dist-dir=./dist \
                 --freetds-version="1.3.9" \
                 --with-openssl=yes \
-                --sdist \
-                --static-freetds
+                --sdist
             delocate-listdeps --all dist/*.whl
             delocate-wheel -v dist/*.whl
             delocate-listdeps --all dist/*.whl
