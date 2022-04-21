@@ -39,8 +39,8 @@ jobs:
 
     - name: build wheel and sdist
       env:
-            LDFLAGS: -L/usr/local/opt/openssl@1.1/lib /usr/local/opt/libiconv/lib/libiconv.a
-            CPPFLAGS: -I/usr/local/opt/openssl@1.1/include -I/usr/local/opt/libiconv/include
+            LDFLAGS: -L/usr/local/opt/openssl@1.1/lib
+            CPPFLAGS: -I/usr/local/opt/openssl@1.1/include
             PKG_CONFIG_PATH: /usr/local/opt/openssl@1.1/lib/pkgconfig
       run: |
             pip install --upgrade pip
@@ -48,8 +48,6 @@ jobs:
             pip install delocate
             python setup.py sdist
             brew install openssl@1.1
-            brew install libiconv
-            ls -la /usr/local/opt/libiconv /usr/local/opt/libiconv/lib
             python dev/build.py \
                 --ws-dir=./freetds \
                 --dist-dir=./dist \
