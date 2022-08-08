@@ -1,7 +1,28 @@
 [build-system]
-requires = ["setuptools>=54.0", "setuptools_scm[toml]>=5.0", "wheel>=0.36.2", "Cython>=0.29.22"]
+requires = [
+    "setuptools>=54.0",
+    "setuptools_scm[toml]>=5.0",
+    "wheel>=0.36.2",
+    "Cython>=0.29.22"
+    ]
 
 [tool.setuptools_scm]
 write_to = "src/pymssql/version.h"
 write_to_template = '#define PYMSSQL_VERSION "{version}"'
 local_scheme = "no-local-version"
+
+[tool.cibuildwheel.linux]
+environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
+before-all = [
+            "yum install -y openssl-devel",
+            "python3 ./dev/build.py --prefix=./deps --static-freetds"
+            ]
+test-command = "echo 'installed'"
+manylinux-x86_64-image = "manylinux2014"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = [
+            "apk add openssl-dev",
+            "python3 ./dev/build.py --prefix=./deps --static-freetds"
+            ]
