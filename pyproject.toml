@@ -30,7 +30,7 @@ before-all = [
 [tool.cibuildwheel.macos]
 before-all = [
             "brew --prefix",
-            "brew install openssl@1.1",
+            "brew install openssl@1.1 --universal",
             "python3 ./dev/build.py --prefix=./deps --static-freetds"
             ]
 
