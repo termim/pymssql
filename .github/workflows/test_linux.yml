@@ -31,6 +31,8 @@ jobs:
   build_wheels_macos:
     name: Build wheels on macos-11
     runs-on: macos-11
+    strategy:
+      fail-fast: false
     steps:
       - uses: actions/checkout@v3
 

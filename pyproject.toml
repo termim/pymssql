@@ -26,3 +26,15 @@ before-all = [
             "apk add openssl-dev",
             "python3 ./dev/build.py --prefix=./deps --static-freetds"
             ]
+
+[tool.cibuildwheel.macos]
+before-all = [
+            "brew install openssl@1.1",
+            "python3 ./dev/build.py --prefix=./deps --static-freetds"
+            ]
+
+[tool.cibuildwheel.macos.environment]
+
+LDFLAGS = "-L/usr/local/opt/openssl@1.1/lib -L./deps/lib"
+CPPFLAGS = "-I/usr/local/opt/openssl@1.1/include -I./deps/include"
+PKG_CONFIG_PATH = "/usr/local/opt/openssl@1.1/lib/pkgconfig"
