@@ -62,7 +62,7 @@ def test_bytes(val):
                          datetime.date(2024, 3, 24)))
 def test_date(val):
     res = quote_simple_value(val)
-    assert res == val.strftime("'%Y-%m-%d'").encode()
+    assert res == val.strftime(f"'{val.year:04}-%m-%d'").encode()
 
 @pytest.mark.xfail(strict=False)
 @pytest.mark.parametrize('val', (
@@ -80,7 +80,7 @@ def test_time(val):
                          datetime.datetime(2024, 3, 24, 0, 0, 1)))
 def test_datetime(val):
     res = quote_simple_value(val)
-    assert res == val.strftime("'%Y-%m-%d %H:%M:%S.%%03d'").encode(
+    assert res == val.strftime(f"'{val.year:04}-%m-%d %H:%M:%S.%%03d'").encode(
                                 ) % (val.microsecond // 1000)
 
 @pytest.mark.xfail(strict=False)
@@ -89,7 +89,7 @@ def test_datetime(val):
                          datetime.datetime(2024, 3, 24, 0, 0, 1)))
 def test_datetime_use_datetime2(val):
     res = quote_simple_value(val, use_datetime2=True)
-    assert res == val.strftime("'%Y-%m-%d %H:%M:%S.%f'").encode()
+    assert res == val.strftime(f"'{val.year:04}-%m-%d %H:%M:%S.%f'").encode()
 
 @pytest.mark.xfail(strict=False)
 @pytest.mark.parametrize('val', (
@@ -97,7 +97,7 @@ def test_datetime_use_datetime2(val):
                          datetime2(2024, 3, 24, 0, 0, 1)))
 def test_datetime2(val):
     res = quote_simple_value(val)
-    assert res == val.strftime("'%Y-%m-%d %H:%M:%S.%f'").encode()
+    assert res == val.strftime(f"'{val.year:04}-%m-%d %H:%M:%S.%f'").encode()
 
 @pytest.mark.xfail(strict=False)
 @pytest.mark.parametrize('val', (
@@ -107,7 +107,7 @@ def test_datetime2(val):
                                            tzinfo=datetime.timezone.utc)))
 def test_datetime_utc(val):
     res = quote_simple_value(val)
-    assert res == val.strftime("'%Y-%m-%d %H:%M:%S.%%03d'").encode(
+    assert res == val.strftime(f"'{val.year:04}-%m-%d %H:%M:%S.%%03d'").encode(
                                 ) % (val.microsecond // 1000)
 
 @pytest.mark.xfail(strict=False)
@@ -120,5 +120,5 @@ def test_datetime_utc(val):
                                                datetime.timedelta(hours=3)))))
 def test_datetime_tz(val):
     res = quote_simple_value(val)
-    assert res == val.strftime("'%Y-%m-%d %H:%M:%S.%f%%b'").encode(
+    assert res == val.strftime(f"'{val.year:04}-%m-%d %H:%M:%S.%f%%b'").encode(
                                 ) % (val.strftime('%Z')[3:].encode())
