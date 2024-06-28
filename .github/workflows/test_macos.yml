@@ -55,6 +55,8 @@ jobs:
             pip install -r dev/requirements-dev.txt
             pip install delocate
             python setup.py sdist
+            brew --help
+            brew --prefix
             brew install openssl@1.1
             brew install libiconv
             python dev/build.py \
