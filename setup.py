@@ -26,6 +26,7 @@ from os.path import exists, join, splitext
 from pathlib import Path
 import platform
 import struct
+import subprocess
 import sys
 
 from setuptools import setup, Extension
@@ -79,6 +80,10 @@ elif exists("/opt/local/include/sqlfront.h"): # MacPorts
     prefix = "/opt/local"
 elif exists("/sw/include/sqlfront.h"): # Fink
     prefix = "/sw"
+
+if MACOS:
+    prefix = subprocess.getoutput('brew --prefix')
+    print(f"PREFIX={prefix}")
 
 if prefix:
     print(f"prefix='{prefix}'")
