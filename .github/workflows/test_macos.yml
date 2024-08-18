@@ -60,7 +60,7 @@ jobs:
                 --sdist \
                 --static-freetds
             delocate-listdeps --all dist/*.whl
-            delocate-wheel -v --require-archs=intel dist/*.whl
+            delocate-wheel -v --require-archs=x86_64 dist/*.whl
             delocate-listdeps --all dist/*.whl
             pip install pymssql --no-index -f dist
             python -c "import pymssql; print(pymssql.version_info())"
