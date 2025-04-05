@@ -57,19 +57,28 @@ documentation = "http://pymssql.readthedocs.io"
 "Changelog" =  "https://github.com/pymssql/pymssql/blob/master/ChangeLog.rst"
 
 [tool.cibuildwheel]
-build =  "cp311-manylinux_x86_64"
+build =  "cp311-manylinux_x86_64 cp311-macosx_*"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]#"auto"]#, "aarch64"]
 environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
 before-all = [
-            "yum install -y openssl-devel",
-            "python3 ./dev/build.py --prefix=./deps --static-freetds"
+            "yum install -y openssl-devel krb5-devel",
+            "python3 ./dev/build.py --prefix=./deps --enable-krb5 --static-freetds"
             ]
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-all = [
-            "apk add openssl-dev",
+            "apk add openssl-dev krb5-dev",
+            "python3 ./dev/build.py --prefix=./deps --enable-krb5 --static-freetds"
+            ]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
+before-all = [
+            "brew install openssl",
+            "brew install libiconv",
             "python3 ./dev/build.py --prefix=./deps --static-freetds"
             ]
