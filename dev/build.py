@@ -224,6 +224,9 @@ def parse_args(argv):
             help="workspace directory for building FreeTDS")
     a('-p', '--prefix', default=None, type=lambda x: Path(x) if x else None,
             help="prefix for installing FreeTDS, default is WS_DIR/prefix")
+
+    a('-W', '--wheel', action='store_true',
+            help="Build wheel.")
     a('-d', '--dist-dir', default=Path('./dist'), type=Path,
             help="where to put pymssql wheel, default is './dist'")
     a('-s', '--sdist', action='store_true',
@@ -258,10 +261,11 @@ def main(argv):
     else:
         build(args, freetds_archive)
 
-    args.dist_dir = args.dist_dir.absolute()
-    env = os.environ.copy()
-    env.update(PYMSSQL_FREETDS=f"{args.prefix}")
-    run(f"{sys.executable} -m pip wheel . -w {args.dist_dir}", shell=True, env=env)
+    if args.wheel:
+        args.dist_dir = args.dist_dir.absolute()
+        env = os.environ.copy()
+        env.update(PYMSSQL_FREETDS=f"{args.prefix}")
+        run(f"{sys.executable} -m pip wheel . -w {args.dist_dir}", shell=True, env=env)
     if args.sdist:
         fmt = 'zip' if platform.system() == 'Windows' else 'gztar'
         run(f"{sys.executable} setup.py sdist --formats={fmt} -d {args.dist_dir}", shell=True, env=env)
