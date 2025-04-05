@@ -57,7 +57,7 @@ documentation = "http://pymssql.readthedocs.io"
 "Changelog" =  "https://github.com/pymssql/pymssql/blob/master/ChangeLog.rst"
 
 [tool.cibuildwheel]
-build =  "cp311-manylinux_x86_64 cp311-macosx_*"
+build = "cp311-manylinux_x86_64 cp311-macosx_*"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]#"auto"]#, "aarch64"]
@@ -82,3 +82,8 @@ before-all = [
             "brew install libiconv",
             "python3 ./dev/build.py --prefix=./deps --static-freetds"
             ]
+
+[[tool.cibuildwheel.overrides]]
+select = "*macosx_arm64"
+inherit.environment = "append"
+environment.MACOSX_DEPLOYMENT_TARGET="14.0"
