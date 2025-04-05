@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "packaging>=24",
-    "setuptools>=54.0,<70.3",
+    "setuptools>=54.0",
     "setuptools_scm[toml]>=8.0",
     "wheel>=0.36.2",
     "Cython>=3.0.10",
@@ -55,3 +55,21 @@ repository = "https://github.com/pymssql/pymssql"
 documentation = "http://pymssql.readthedocs.io"
 "Bug Tracker" = "https://github.com/pymssql/pymssql/issues"
 "Changelog" =  "https://github.com/pymssql/pymssql/blob/master/ChangeLog.rst"
+
+[tool.cibuildwheel]
+build =  "cp311-manylinux_x86_64"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]#"auto"]#, "aarch64"]
+environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
+before-all = [
+            "yum install -y openssl-devel",
+            "python3 ./dev/build.py --prefix=./deps --static-freetds"
+            ]
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = [
+            "apk add openssl-dev",
+            "python3 ./dev/build.py --prefix=./deps --static-freetds"
+            ]
