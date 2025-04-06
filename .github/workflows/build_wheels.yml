@@ -28,7 +28,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-20.04]
+        #os: [macos-latest, ubuntu-20.04]
+        os: [ubuntu-20.04]
         python-version: ['3.11']
 
     steps:

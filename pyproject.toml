@@ -57,7 +57,8 @@ documentation = "http://pymssql.readthedocs.io"
 "Changelog" =  "https://github.com/pymssql/pymssql/blob/master/ChangeLog.rst"
 
 [tool.cibuildwheel]
-build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-macosx_*"
+#build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-macosx_*"
+build = "cp311-manylinux_aarch64"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64"]
