@@ -67,7 +67,7 @@ jobs:
       - uses: actions/upload-artifact/merge@v4
         with:
           name: wheels
-          path: wheelhouse
+          #path: wheelhouse
           pattern: wheels-*
           separate-directories: false
           delete-merged: false
