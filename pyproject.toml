@@ -57,13 +57,13 @@ documentation = "http://pymssql.readthedocs.io"
 "Changelog" =  "https://github.com/pymssql/pymssql/blob/master/ChangeLog.rst"
 
 [tool.cibuildwheel]
-build = "cp311-manylinux_x86_64 cp311-macosx_*"
+build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-macosx_*"
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64"]#"auto"]#, "aarch64"]
+archs = ["x86_64", "aarch64"]
 environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
 before-all = [
-            "yum install -y openssl-devel krb5-devel",
+            "yum install -y curl openssl-devel krb5-devel",
             "python3 ./dev/build.py --prefix=./deps --enable-krb5 --static-freetds"
             ]
 
