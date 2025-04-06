@@ -204,7 +204,7 @@ def parse_args(argv):
 
     a('-f', '--force-download', action='store_true',
             help="force archive download")
-    a('-u', '--freetds-url', default="http://ftp.freetds.org/pub/freetds/stable",
+    a('-u', '--freetds-url', default="https://www.freetds.org/files/stable/",
             help="URL to download FreeTDS archive")
     a('-v', '--freetds-version', default='', type=freetds_version,
             help="""Specific FreeTDS version to build or 'latest'.
