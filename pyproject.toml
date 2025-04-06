@@ -58,7 +58,8 @@ documentation = "http://pymssql.readthedocs.io"
 
 [tool.cibuildwheel]
 #build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-macosx_*"
-build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64"
+build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-win_amd64"
+build-verbosity = 3
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64"]
@@ -88,3 +89,21 @@ before-all = [
 select = "*macosx_arm64"
 inherit.environment = "append"
 environment.MACOSX_DEPLOYMENT_TARGET="14.0"
+
+[tool.cibuildwheel.windows]
+archs = ["auto"]
+environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
+before-all = [
+            "choco install gperf",
+            "choco install openssl --version=3.1.1",
+            'dir /s "C:/Program Files/OpenSSL"',
+            "python3 ./dev/build.py --prefix=./deps"
+            ]
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win_x86"
+before-all = [
+            "choco install gperf",
+            "choco install openssl --forcex86 --version=1.1.1.2100",
+            "python3 ./dev/build.py --prefix=./deps"
+            ]
