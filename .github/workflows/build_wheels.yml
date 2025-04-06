@@ -23,12 +23,13 @@ jobs:
 
   build_wheels:
 
-    name: Build wheels on ${{ matrix.os }} for Python ${{ matrix.python-version }}
+    name: Build wheels on ${{ matrix.os }} on Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os: [macos-latest, ubuntu-20.04]
+        python-version: ['3.11']
 
     steps:
 
@@ -36,9 +37,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel
@@ -50,3 +53,15 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse
+
+  upload-wheels:
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/upload-artifact/merge@v4
+        with:
+          name: wheels
+          path: wheelhouse
+          pattern: wheels-*
+          separate-directories: false
+          delete-merged: false
