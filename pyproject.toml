@@ -58,11 +58,12 @@ documentation = "http://pymssql.readthedocs.io"
 
 [tool.cibuildwheel]
 #build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-macosx_*"
-build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-win_amd64"
+#build = "cp311-manylinux_x86_64 cp311-manylinux_aarch64 cp311-win_amd64"
+build =  "cp39-* cp310-* cp311-* cp312-* cp313-*"
 build-verbosity = 3
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64", "aarch64"]
+#archs = ["x86_64", "aarch64"]
 environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
 before-all = [
             "yum install -y openssl-devel krb5-devel",
@@ -77,7 +78,7 @@ before-all = [
             ]
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
+#archs = ["x86_64", "arm64"]
 environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
 before-all = [
             "brew install openssl",
@@ -91,7 +92,7 @@ inherit.environment = "append"
 environment.MACOSX_DEPLOYMENT_TARGET="14.0"
 
 [tool.cibuildwheel.windows]
-archs = ["auto"]
+#archs = ["auto"]
 environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
 before-all = [
             "choco install gperf",

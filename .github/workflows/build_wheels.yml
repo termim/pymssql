@@ -30,24 +30,24 @@ jobs:
       fail-fast: false
       matrix:
         #os: [macos-latest, ubuntu-20.04]
-        #os: [ubuntu-20.04, ubuntu-24.04-arm, windows-latest]
+        os: [ubuntu-20.04, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
         #os: [windows-latest]
-        include:
-        - os: ubuntu-latest
-          arch: x86_64
-          id: cp3*-manylinux_x86_64
-        - os: ubuntu-24.04-arm
-          arch: aarch64
-          id: cp3*-manylinux_aarch64
-        - os: macos-13
-          arch: x86_64
-          id: cp3*-macos_x86_64
-        - os: macos-15
-          arch: arm64
-          id: cp3*-macos_arm64
-        - os: windows-latest
-          arch: amd64
-          id: cp3*-win_amd64
+        #include:
+        #- os: ubuntu-latest
+          #arch: x86_64
+          #id: cp3*-manylinux_x86_64
+        #- os: ubuntu-24.04-arm
+          #arch: aarch64
+          #id: cp3*-manylinux_aarch64
+        #- os: macos-13
+          #arch: x86_64
+          #id: cp3*-macos_x86_64
+        #- os: macos-15
+          #arch: arm64
+          #id: cp3*-macos_arm64
+        #- os: windows-latest
+          #arch: amd64
+          #id: cp3*-win_amd64
 
     steps:
 
@@ -71,9 +71,10 @@ jobs:
 
       - name: Build wheels
         env:
-            CIBW_ARCHS: ${{ matrix.arch }}
-            CIBW_ARCHS_MACOS: ${{ matrix.arch }}
-            CIBW_BUILD: ${{ matrix.id }}
+          CIBW_ARCHS_LINUX: ${{ runner.arch == 'X64' && 'auto ppc64le s390x' || 'auto' }}
+          #CIBW_ARCHS: ${{ matrix.arch }}
+          #CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          #CIBW_BUILD: ${{ matrix.id }}
 
         run: python -m cibuildwheel --output-dir wheelhouse
 
