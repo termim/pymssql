@@ -146,7 +146,7 @@ class build_ext(_build_ext):
                 if LINK_FREETDS_STATICALLY:
                     libraries = [
                         'replacements',
-                        'db-lib', 'tds', 'tdsutils',
+                        'db-lib', 'tds', 'tdsutils', 'sybdb',
                         'ws2_32', 'wsock32', 'kernel32', 'shell32',
                     ]
                     if LINK_OPENSSL:
