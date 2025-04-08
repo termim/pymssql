@@ -162,7 +162,7 @@ def build_windows(args, freetds_archive, iconv_archive):
 
     krb5 = "ON" if args.enable_krb5 else "OFF"
     cmd = f'"{args.cmake}" -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release " \
-            "-DWITH_OPENSSL=ON -DENABLE_KRB5={krb5} -DCMAKE_INSTALL_PREFIX="{args.prefix}" "{srcdir}"'
+            "-DWITH_OPENSSL=ON -DENABLE_KRB5={krb5} -DENABLE_MSDBLIB=ON -DCMAKE_INSTALL_PREFIX="{args.prefix}" "{srcdir}"'
     env["PATH"] += f";{args.msys}"
     run(cmd, cwd=blddir, env=env)
 
