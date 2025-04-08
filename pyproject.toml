@@ -103,7 +103,7 @@ before-all = [
             "choco install gperf",
             "choco install openssl --version=3.1.1",
             'dir /s "C:/Program Files/OpenSSL"',
-            "python3 ./dev/build.py --prefix=./deps"
+            "python3 ./dev/build.py --prefix=./deps --wheel"
             ]
 
 [[tool.cibuildwheel.overrides]]
@@ -113,5 +113,5 @@ before-all = [
             "choco install openssl --forcex86 --version=1.1.1.2100",
             'dir /s "C:/Program Files (x86)"',
             'dir /s "C:/Program Files"',
-            "python3 ./dev/build.py --prefix=./deps"
+            "python3 ./dev/build.py --prefix=./deps --wheel"
             ]
