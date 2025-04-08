@@ -111,5 +111,7 @@ select = "*-win_x86"
 before-all = [
             "choco install gperf",
             "choco install openssl --forcex86 --version=1.1.1.2100",
+            'dir /s "C:/Program Files (x86)"',
+            'dir /s "C:/Program Files"',
             "python3 ./dev/build.py --prefix=./deps"
             ]
