@@ -30,7 +30,8 @@ jobs:
       fail-fast: false
       matrix:
         #os: [macos-latest, ubuntu-20.04]
-        os: [ubuntu-20.04, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
+        #os: [ubuntu-20.04, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
+        os: [windows-latest]
         #os: [windows-latest]
         #include:
         #- os: ubuntu-latest

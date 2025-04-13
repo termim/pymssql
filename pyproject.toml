@@ -103,7 +103,12 @@ before-all = [
             "choco install gperf",
             "choco install openssl --version=3.1.1",
             'dir /s "C:/Program Files/OpenSSL"',
-            "python3 ./dev/build.py --prefix=./deps --wheel"
+            "python3 ./dev/build.py --prefix=./deps",
+            '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.43.34808\bin\HostX86\x86\link.exe" /dump /linkermember:2 ./deps/lib/sybdb.lib',
+            '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.43.34808\bin\HostX86\x86\link.exe" /dump /linkermember:2 ./deps/lib/db-lib.lib',
+            '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.43.34808\bin\HostX86\x86\link.exe" /dump /linkermember:2 ./deps/lib/tds.lib',
+            '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.43.34808\bin\HostX86\x86\link.exe" /dump /linkermember:2 ./deps/lib/replacements.lib',
+            '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.43.34808\bin\HostX86\x86\link.exe" /dump /linkermember:2 ./deps/lib/tdsutils.lib',
             ]
 
 [[tool.cibuildwheel.overrides]]
