@@ -71,7 +71,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_ARCHS_LINUX: ${{ runner.arch == 'X64' && 'auto ppc64le s390x' || 'auto' }}
+          CIBW_ARCHS_LINUX: ${{ runner.arch == 'X64' && 'auto' || 'auto' }}
           #CIBW_ARCHS: ${{ matrix.arch }}
           #CIBW_ARCHS_MACOS: ${{ matrix.arch }}
           #CIBW_BUILD: ${{ matrix.id }}
