@@ -62,7 +62,7 @@ documentation = "http://pymssql.readthedocs.io"
 build = "cp311-manylinux_x86_64"
 #archs = ["x86_64"]
 build-verbosity = 1
-before-test = "pip install -r dev/requirements-dev.txt"
+before-test = "pip install -r dev/requirements-test.txt"
 test-requires = "pytest"
 test-command = "pytest {project}/tests"
 container-engine = { name = "docker", create-args = ["--network", "host"] }
