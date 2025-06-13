@@ -33,13 +33,13 @@ jobs:
 
   build_wheels:
 
-    name: Build wheels on ${{ matrix.os }} on Python ${{ matrix.python-version }}
+    name: ${{ matrix.os }} Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-13, macos-14, win_amd64]
         python-version: ['39', '310', '311', '312', '313']
 
     steps:
