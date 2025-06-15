@@ -106,6 +106,7 @@ environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
 before-all = [
             "choco install gperf",
             "choco install openssl --version=3.1.1",
+            "dir c: /s",
             "python3 ./dev/build.py --prefix=./deps",
             ]
 
