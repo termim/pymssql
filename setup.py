@@ -60,6 +60,14 @@ LINK_KRB5 = check_env('LINK_KRB5', 'YES')
 # 32 bit or 64 bit system?
 BITNESS = struct.calcsize("P") * 8
 print(f"setup.py: BITNESS='{BITNESS}'")
+import sysconfig
+PLATFORM = sysconfig.get_platform()
+print(f"setup.py: PLATFORM='{PLATFORM}'")
+if hasattr(os,'uname'):
+    MACHINE = os.uname().machine
+    print(f"setup.py: MACHINE='{MACHINE}'")
+MAXSIZE = sys.maxsize
+print(f"setup.py: MAXSIZE='{MAXSIZE}'", sys.maxsize > 2**32)
 
 WINDOWS = platform.system() == 'Windows'
 MACOS = platform.system() == 'Darwin'
