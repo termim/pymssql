@@ -68,6 +68,8 @@ if hasattr(os,'uname'):
     print(f"setup.py: MACHINE='{MACHINE}'")
 MAXSIZE = sys.maxsize
 print(f"setup.py: MAXSIZE='{MAXSIZE}'", sys.maxsize > 2**32)
+BITNESS = 64 if sys.maxsize > 2**32 else 32
+print(f"setup.py: BITNESS='{BITNESS}'")
 
 WINDOWS = platform.system() == 'Windows'
 MACOS = platform.system() == 'Darwin'
