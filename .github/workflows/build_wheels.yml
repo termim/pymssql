@@ -165,6 +165,7 @@ jobs:
         uses: pypa/cibuildwheel@v3.0.0
         env:
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4
         with:
