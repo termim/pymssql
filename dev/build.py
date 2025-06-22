@@ -16,6 +16,7 @@ import tarfile
 
 def run(cmd, cwd=None, env=None, shell=True):
 
+    print(f"build.py: {cmd}")
     check_call(str(cmd), cwd=str(cwd) if cwd else cwd, env=env, shell=shell, stderr=STDOUT)
 
 
@@ -118,7 +119,9 @@ def find_vcvarsall_env():
 
 def build_windows(args, freetds_archive, iconv_archive):
 
+    import struct
     from zipfile import ZipFile
+
     wiconv = args.ws_dir / "win-iconv"
     if wiconv.exists():
         shutil.rmtree(wiconv)
@@ -131,11 +134,18 @@ def build_windows(args, freetds_archive, iconv_archive):
                 (wiconv / fn).write_bytes(zipf.read(m))
 
     env = find_vcvarsall_env()
+    BITNESS = struct.calcsize("P") * 8
+    print(f"build.py: BITNESS={BITNESS}")
+    print('\n'.join([ f"{k}={v}" for k,v in os.environ.items()]))
+    CIBW_ARCHS_WINDOWS = os.environ.get("CIBW_ARCHS_WINDOWS")
+    if CIBW_ARCHS_WINDOWS == 'x86':
+        run("vcvars32.bat")
+        env = os.environ.copy()
+        print('\n'.join([ f"{k}={v}" for k,v in os.environ.items()]))
 
-    cmd = f'"{args.cmake}" -G "NMake Makefiles" ' \
+    cmd = f'"{args.cmake}" --log-level=DEBUG -G "NMake Makefiles" ' \
             '-DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=on -DBUILD_SHARED=off ' \
-            '-DBUILD_EXECUTABLE=off -DBUILD_TEST=off -A Win32 ' \
-            '.'
+            '-DBUILD_EXECUTABLE=off -DBUILD_TEST=off .'
     print(f"running cmake in {wiconv}")
     run(cmd, cwd=wiconv, env=env)
     print(f"running nmake in {wiconv}")
@@ -161,8 +171,9 @@ def build_windows(args, freetds_archive, iconv_archive):
     shutil.copy(wiconv / "iconv.lib", blddir / "lib")
 
     krb5 = "ON" if args.enable_krb5 else "OFF"
-    cmd = f'"{args.cmake}" -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release " \
-            "-DWITH_OPENSSL=ON -DENABLE_KRB5={krb5} -DCMAKE_INSTALL_PREFIX="{args.prefix}" "{srcdir}"'
+    cmd = f'"{args.cmake}" --log-level=DEBUG -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release " \
+            "-DWITH_OPENSSL=ON -DENABLE_KRB5={krb5} -DCMAKE_INSTALL_PREFIX="{args.prefix}"'
+    cmd += f' "{srcdir}"'
     env["PATH"] += f";{args.msys}"
     run(cmd, cwd=blddir, env=env)
 
