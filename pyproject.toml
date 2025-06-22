@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "packaging>=24",
-    "setuptools>=54.0",
+    "setuptools>=77.0",
     "setuptools_scm[toml]>=8.0",
     "wheel>=0.36.2",
     "Cython>=3.1.0",
@@ -101,15 +101,11 @@ select = "*macosx_arm64"
 inherit.environment = "append"
 environment.MACOSX_DEPLOYMENT_TARGET="14.0"
 
-#[tool.cibuildwheel.windows]
-#environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
-#before-all = [
-            #"set",
-            #"choco install gperf",
-            #"choco install openssl --version=3.1.1",
-            #'dir "c:/Program Files/OpenSSL/" /s',
-            #"python3 ./dev/build.py --prefix=./deps",
-            #]
+[tool.cibuildwheel.windows]
+environment = { PYMSSQL_FREETDS = "./deps", LD_LIBRARY_PATH = "./deps/lib" }
+before-all = [
+            "python3 ./dev/build.py --prefix=./deps",
+            ]
 
 #[[tool.cibuildwheel.overrides]]
 #select = "*-win32"

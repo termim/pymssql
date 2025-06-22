@@ -174,14 +174,14 @@ jobs:
 
   build_wheels_windows:
 
-    name: ${{ matrix.os }}
+    name: ${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest]
-        arch: [auto]
+        arch: [AMD64, x86]
 
     steps:
 
