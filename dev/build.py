@@ -99,6 +99,10 @@ def find_vcvarsall_env():
     from distutils.util import get_platform
 
     plat_name = get_platform()
+    CIBW_ARCHS_WINDOWS = os.environ.get("CIBW_ARCHS_WINDOWS")
+    if CIBW_ARCHS_WINDOWS == 'x86':
+        plat_name = 'win32'
+
     try:
         plat_spec = _msvcc.PLAT_TO_VCVARS[plat_name]
     except AttributeError:
@@ -119,7 +123,6 @@ def find_vcvarsall_env():
 
 def build_windows(args, freetds_archive, iconv_archive):
 
-    import struct
     from zipfile import ZipFile
 
     wiconv = args.ws_dir / "win-iconv"
@@ -134,14 +137,6 @@ def build_windows(args, freetds_archive, iconv_archive):
                 (wiconv / fn).write_bytes(zipf.read(m))
 
     env = find_vcvarsall_env()
-    BITNESS = struct.calcsize("P") * 8
-    print(f"build.py: BITNESS={BITNESS}")
-    print('\n'.join([ f"{k}={v}" for k,v in os.environ.items()]))
-    CIBW_ARCHS_WINDOWS = os.environ.get("CIBW_ARCHS_WINDOWS")
-    if CIBW_ARCHS_WINDOWS == 'x86':
-        run("vcvars32.bat")
-        env = os.environ.copy()
-        print('\n'.join([ f"{k}={v}" for k,v in os.environ.items()]))
 
     cmd = f'"{args.cmake}" --log-level=DEBUG -G "NMake Makefiles" ' \
             '-DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=on -DBUILD_SHARED=off ' \
