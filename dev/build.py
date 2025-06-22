@@ -134,7 +134,7 @@ def build_windows(args, freetds_archive, iconv_archive):
 
     cmd = f'"{args.cmake}" -G "NMake Makefiles" ' \
             '-DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=on -DBUILD_SHARED=off ' \
-            '-DBUILD_EXECUTABLE=off -DBUILD_TEST=off ' \
+            '-DBUILD_EXECUTABLE=off -DBUILD_TEST=off -A Win32 ' \
             '.'
     print(f"running cmake in {wiconv}")
     run(cmd, cwd=wiconv, env=env)
