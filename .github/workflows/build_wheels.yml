@@ -139,7 +139,40 @@ jobs:
           #name: wheels-${{ matrix.os }}-${{ matrix.only }}
           #path: wheelhouse
 
-  build_wheels_2:
+  #build_wheels_2:
+#
+    #name: ${{ matrix.os }}
+    #runs-on: ${{ matrix.os }}
+#
+    #strategy:
+      #fail-fast: false
+      #matrix:
+        ##os: [ubuntu-24.04-arm, macos-13, macos-14, windows-latest]
+        #os: [windows-latest]
+        #arch: [auto]
+#
+    #steps:
+#
+      #- uses: actions/checkout@v4
+        #with:
+          #fetch-depth: 0
+#
+      #- name: Set up QEMU
+        #if: ${{ matrix.arch == 'aarch64' }}
+        #uses: docker/setup-qemu-action@v3
+#
+      #- name: Build wheels
+        #uses: pypa/cibuildwheel@v3.0.0
+        #env:
+          #CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          #CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
+#
+      #- uses: actions/upload-artifact@v4
+        #with:
+          #name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          #path: wheelhouse
+
+  build_wheels_windows:
 
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -147,7 +180,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #os: [ubuntu-24.04-arm, macos-13, macos-14, windows-latest]
         os: [windows-latest]
         arch: [auto]
 
@@ -157,14 +189,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up QEMU
-        if: ${{ matrix.arch == 'aarch64' }}
-        uses: docker/setup-qemu-action@v3
+      - name: Install OpenSSL x86
+        if: matrix.arch == 'x86'
+        run: choco install openssl --forcex86 --version=1.1.1.2100
+
+      - name: Install OpenSSL AMD64
+        if: matrix.arch == 'AMD64'
+        run: choco install openssl --version=3.1.1
+
+      - name: Install gperf
+        run: choco install gperf
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.0.0
         env:
-          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4
@@ -173,7 +211,7 @@ jobs:
           path: wheelhouse
 
   upload-wheels:
-    needs: [build_wheels_2]
+    needs: [build_wheels_windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/upload-artifact/merge@v4
