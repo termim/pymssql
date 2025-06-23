@@ -7,11 +7,6 @@ on:
     paths-ignore:
         - docs/**
         - ChangeLog*
-        - .github/workflows/test_macos.yml
-        - .github/workflows/test_linux.yml
-        - .github/workflows/test_linux_aarch64.yml
-        - .github/workflows/test_windows.yml
-        - dev/build_manylinux_wheels.sh
     tags:
         - 'v[0-9]+.[0-9]+.[0-9]+'
         - 'v[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
@@ -21,11 +16,6 @@ on:
     paths-ignore:
         - docs/**
         - ChangeLog*
-        - .github/workflows/test_macos.yml
-        - .github/workflows/test_linux.yml
-        - .github/workflows/test_linux_aarch64.yml
-        - .github/workflows/test_windows.yml
-        - dev/build_manylinux_wheels.sh
 
   workflow_dispatch:
 
@@ -130,10 +120,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up QEMU
-        if: ${{ matrix.arch == 'aarch64' }}
-        uses: docker/setup-qemu-action@v3
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.0.0
         env:
@@ -182,13 +168,53 @@ jobs:
           name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: wheelhouse
 
-  upload-wheels:
+  merge_wheels:
     needs: [build_wheels, build_wheels_2, build_wheels_windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/upload-artifact/merge@v4
         with:
           name: wheels
-          #pattern: wheels-*
           separate-directories: false
           delete-merged: false
+
+  check_wheels:
+    needs: [merge_wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist/
+
+      - name: Check wheels
+        run: |
+            # upgrade packaging for PEP 639
+            python -m pip install packaging>=24.2 --upgrade
+            python -m pip install twine --upgrade
+            python -m twine check --strict dist/*
+
+  upload-wheels:
+    needs: [check_wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist/
+
+      - name: Publish wheels and sdist
+        if: github.repository_owner == 'pymssql' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+            # upgrade packaging for PEP 639
+            python -m pip install packaging>=24.2 --upgrade
+            python -m pip install twine --upgrade
+            twine upload --skip-existing -u __token__ -p ${{secrets.PYMSSQL_PYPI_TOKEN}} dist/*
+
+      #- name: Publish wheels and sdist on test.pypi.org
+        #if: github.repository_owner == 'pymssql' && github.ref == 'refs/heads/master'
+        #run: |
+            ## upgrade packaging for PEP 639
+            #python -m pip install packaging>=24.2 --upgrade
+            #python -m pip install twine --upgrade
+            #twine upload --skip-existing -u __token__ -p ${{secrets.PYMSSQL_TEST_PYPI_TOKEN}} --repository-url=https://test.pypi.org/legacy/ dist/*

@@ -1,4 +1,5 @@
 build
+.spyproject
 *.c
 *.so
 a.out
@@ -9,6 +10,7 @@ tests/tests.cfg
 .tox
 dist
 wheelhouse
+*.whl
 *.egg
 *.egg-info
 docs/_build
