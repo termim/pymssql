@@ -27,7 +27,7 @@ version_for_pypi_wheels = "1.5.10"
 name =  "pymssql"
 dynamic =  ["version", "readme"]
 description = 'DB-API interface to Microsoft SQL Server for Python. (new Cython-based version)'
-license = "LGPL-2.1-or-later"
+license = {file = "LICENSE"}
 authors = [{name = "Damien Churchill", email = "damoxc@gmail.com"}]
 maintainers = [{name = "Mikhail Terekhov", email = "termim@gmail.com"}]
 keywords = ['mssql', 'SQL Server', 'database', 'DB-API']
@@ -91,7 +91,7 @@ before-all = [
 [[tool.cibuildwheel.overrides]]
 select = "*macosx_x86_64"
 inherit.environment = "append"
-environment.MACOSX_DEPLOYMENT_TARGET="13.0"
+environment.MACOSX_DEPLOYMENT_TARGET="15.0"
 
 [[tool.cibuildwheel.overrides]]
 select = "*macosx_arm64"
