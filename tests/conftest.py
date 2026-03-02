@@ -17,7 +17,30 @@ cfgpath = os.path.join(cdir, 'tests.cfg')
 
 @pytest.fixture(scope="module")
 def mssql_conn():
+    """Fixture providing _mssql.MSSQLConnection (low-level API)."""
     return th.mssqlconn()
+
+
+@pytest.fixture(scope="function")
+def mssql_conn_function():
+    """Fixture providing a new _mssql.MSSQLConnection for each test."""
+    conn = th.mssqlconn()
+    yield conn
+    conn.close()
+
+
+@pytest.fixture(scope="module")
+def pymssql_conn():
+    """Fixture providing pymssql.Connection (high-level DB-API)."""
+    return th.pymssqlconn()
+
+
+@pytest.fixture(scope="function")
+def pymssql_conn_function():
+    """Fixture providing a new pymssql.Connection for each test."""
+    conn = th.pymssqlconn()
+    yield conn
+    conn.close()
 
 
 @pytest.fixture(scope="module")

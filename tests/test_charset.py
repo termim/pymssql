@@ -3,21 +3,32 @@
 Test charset usage in queries.
 """
 
-import unittest
-
 import pytest
+import pymssql
+from .helpers import config
 
-from .helpers import pymssqlconn
+
+@pytest.fixture
+def conn_with_charset():
+    """Fixture providing pymssql.Connection with WINDOWS-1251 charset."""
+    conn = pymssql.connect(
+        server=config.server,
+        user=config.user,
+        password=config.password,
+        database=config.database,
+        port=config.port,
+        charset='WINDOWS-1251',
+    )
+    yield conn
+    conn.close()
 
 
 @pytest.mark.mssql_server_required
-class TestCharset(unittest.TestCase):
+class TestCharset:
+    """Tests for charset usage in queries."""
 
-    def setUp(self):
-        self.conn = pymssqlconn(charset='WINDOWS-1251')
-
-    def test_charset(self):
-        cursor = self.conn.cursor()
+    def test_charset(self, conn_with_charset):
+        cursor = conn_with_charset.cursor()
 
         try:
             cursor.execute(
@@ -25,9 +36,9 @@ class TestCharset(unittest.TestCase):
                 ('Здравствуй', 'Мир')  # Russian strings
             )
         except UnicodeDecodeError as e:
-            self.fail("cursor.execute() raised %s unexpectedly: %s" % (e.__class__.__name__, e))
+            pytest.fail("cursor.execute() raised %s unexpectedly: %s" % (e.__class__.__name__, e))
 
         a, b = cursor.fetchone()
 
-        self.assertEqual(a, 'Здравствуй')
-        self.assertEqual(b, 'Мир')
+        assert a == 'Здравствуй'
+        assert b == 'Мир'
