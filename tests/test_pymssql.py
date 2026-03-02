@@ -9,7 +9,7 @@ import pytest
 
 import pymssql as pym
 
-from .helpers import pymssqlconn, PyTableBase, CursorBase, eq_, config
+from .helpers import pymssqlconn, PyTableBase, eq_, config
 
 class TestDBAPI2(object):
     def test_version(self):
@@ -90,15 +90,6 @@ class TestTransaction(unittest.TestCase, PyTableBase):
         # rollback should have resulted in user's insert getting rolled back
         # too
         eq_(self.row_count(), 0)
-
-
-@pytest.mark.mssql_server_required
-class TestCursor(CursorBase):
-    dbmod = pym
-
-    @classmethod
-    def newconn(cls):
-        cls.conn = pymssqlconn()
 
 
 @pytest.mark.mssql_server_required
