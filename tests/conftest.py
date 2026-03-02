@@ -10,7 +10,7 @@ from configparser import ConfigParser
 import pytest
 
 import tests.helpers as th
-from .helpers import clear_db, get_app_lock, release_app_lock
+from .helpers import clear_db
 
 cdir = os.path.dirname(__file__)
 cfgpath = os.path.join(cdir, 'tests.cfg')
@@ -113,25 +113,28 @@ def pytest_configure(config):
         config.addinivalue_line("markers",
                                 "{}: {}".format(marker, info['marker-descr']))
 
-    if get_app_lock():
-        clear_db()
-
-def pytest_unconfigure(config):
-    release_app_lock()
+    clear_db()
 
 
 def pytest_collection_modifyitems(config, items):
+    # Check if MSSQL server is available
+    try:
+        test_conn = th.mssqlconn()
+        mssql_available = True
+        test_conn.close()
+    except Exception:
+        mssql_available = False
 
     marker = "mssql_server_required"
     info = optional_markers[marker]
-    if th.global_mssqlconn is None or config.getoption("--skip-{}".format(marker.replace('_','-'))):
+    if not mssql_available or config.getoption("--skip-{}".format(marker.replace('_','-'))):
         skip = pytest.mark.skip(reason=info['skip-reason'])
         for item in items:
             if marker in item.keywords:
                 item.add_marker(skip)
     marker = "slow"
     info = optional_markers[marker]
-    if th.global_mssqlconn is None or config.getoption("--skip-{}".format(marker)):
+    if not mssql_available or config.getoption("--skip-{}".format(marker)):
         skip = pytest.mark.skip(reason=info['skip-reason'])
         for item in items:
             if marker in item.keywords:
