@@ -23,35 +23,8 @@ def mark_slow(f):
 mssql_server_required = pytest.mark.mssql_server_required
 
 
-
-class Config(object):
-    def __str__(self):
-        return f"server={self.server}, port={self.port}, database={self.database}, " \
-               f"user={self.user}, password={self.password}"
-
-config = Config()
-
-
-def mssqlconn(conn_properties=None):
-    return _mssql.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
-        conn_properties=conn_properties
-    )
-
-
-def pymssqlconn(**kwargs):
-    return pymssql.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
-        **kwargs
-    )
+# Backward compatibility - import from conftest.py
+from .conftest import config, mssqlconn, pymssqlconn, clear_db
 
 
 def drop_table(conn, tname):

@@ -8,23 +8,69 @@ import os
 from configparser import ConfigParser
 
 import pytest
+from pymssql import _mssql
+import pymssql
 
-import tests.helpers as th
-from .helpers import clear_db
 
 cdir = os.path.dirname(__file__)
 cfgpath = os.path.join(cdir, 'tests.cfg')
 
+
+class Config:
+    """Configuration class for test connection settings."""
+    def __init__(self):
+        self.server = 'localhost'
+        self.user = 'sa'
+        self.password = 'sqlServerPassw0rd'
+        self.database = 'tempdb'
+        self.port = '1433'
+        self.ipaddress = '127.0.0.1'
+        self.instance = ''
+        self.orig_decimal_prec = None
+
+    def __str__(self):
+        return f"server={self.server}, port={self.port}, database={self.database}, " \
+               f"user={self.user}, password={self.password}"
+
+
+# Global config instance
+config = Config()
+
+
+def mssqlconn(conn_properties=None):
+    """Create a _mssql.MSSQLConnection."""
+    return _mssql.connect(
+        server=config.server,
+        user=config.user,
+        password=config.password,
+        database=config.database,
+        port=config.port,
+        conn_properties=conn_properties
+    )
+
+
+def pymssqlconn(**kwargs):
+    """Create a pymssql.Connection."""
+    return pymssql.connect(
+        server=config.server,
+        user=config.user,
+        password=config.password,
+        database=config.database,
+        port=config.port,
+        **kwargs
+    )
+
+
 @pytest.fixture(scope="module")
 def mssql_conn():
     """Fixture providing _mssql.MSSQLConnection (low-level API)."""
-    return th.mssqlconn()
+    return mssqlconn()
 
 
 @pytest.fixture(scope="function")
 def mssql_conn_function():
     """Fixture providing a new _mssql.MSSQLConnection for each test."""
-    conn = th.mssqlconn()
+    conn = mssqlconn()
     yield conn
     conn.close()
 
@@ -32,13 +78,13 @@ def mssql_conn_function():
 @pytest.fixture(scope="module")
 def pymssql_conn():
     """Fixture providing pymssql.Connection (high-level DB-API)."""
-    return th.pymssqlconn()
+    return pymssqlconn()
 
 
 @pytest.fixture(scope="function")
 def pymssql_conn_function():
     """Fixture providing a new pymssql.Connection for each test."""
-    conn = th.pymssqlconn()
+    conn = pymssqlconn()
     yield conn
     conn.close()
 
@@ -46,7 +92,21 @@ def pymssql_conn_function():
 @pytest.fixture(scope="module")
 def sql_server_version(mssql_conn):
     """Fixture providing SQL Server version."""
-    return th.get_sql_server_version(mssql_conn)
+    result = mssql_conn.execute_scalar(
+        "SELECT CAST(SERVERPROPERTY('ProductVersion') as varchar)"
+    )
+    ver_code = int(result.split('.')[0])
+    if ver_code >= 12:
+        major_version = 2014
+    elif ver_code == 11:
+        major_version = 2012
+    elif ver_code == 10:
+        major_version = 2008
+    elif ver_code == 9:
+        major_version = 2005
+    else:
+        major_version = 2000
+    return major_version
 
 
 @pytest.fixture(scope="module")
@@ -57,6 +117,7 @@ def datetime2_supported(mssql_conn, sql_server_version):
     if mssql_conn.tds_version < 7.3:
         pytest.skip("DATETIME2 field type isn't supported by TDS protocol older than 7.3.")
     return True
+
 
 _parser = ConfigParser({
     'server': 'localhost',
@@ -77,6 +138,31 @@ optional_markers = {
              "skip-reason": "Test only runs if MSSQL server is available."},
     # add further markers here
 }
+
+
+def clear_db():
+    """Clear all test objects from database."""
+    conn = mssqlconn()
+    mapping = {
+        'P': 'drop procedure [%(name)s]',
+        'C': 'alter table [%(parent_name)s] drop constraint [%(name)s]',
+        ('FN', 'IF', 'TF'): 'drop function [%(name)s]',
+        'V': 'drop view [%(name)s]',
+        'F': 'alter table [%(parent_name)s] drop constraint [%(name)s]',
+        'U': 'drop table [%(name)s]',
+    }
+    delete_sql = []
+    for type, drop_sql in mapping.items():
+        sql = 'select name, object_name( parent_object_id ) as parent_name '\
+            'from sys.objects where type in (\'%s\')' % '", "'.join(type)
+        conn.execute_query(sql)
+        for row in conn:
+            if row['name'][0] not in ('#','@'):
+                delete_sql.append(drop_sql % dict(row))
+    for sql in delete_sql:
+        conn.execute_non_query(sql)
+    conn.close()
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -100,14 +186,14 @@ def pytest_configure(config):
     else:
         section = 'DEFAULT'
 
-    th.config.server = os.getenv('PYMSSQL_TEST_SERVER') or _parser.get(section, 'server')
-    th.config.user = os.getenv('PYMSSQL_TEST_USERNAME') or _parser.get(section, 'username')
-    th.config.password = os.getenv('PYMSSQL_TEST_PASSWORD') or _parser.get(section, 'password')
-    th.config.database = os.getenv('PYMSSQL_TEST_DATABASE') or _parser.get(section, 'database')
-    th.config.port = os.getenv('PYMSSQL_TEST_PORT') or _parser.get(section, 'port')
-    th.config.ipaddress = os.getenv('PYMSSQL_TEST_IPADDRESS') or _parser.get(section, 'ipaddress')
-    th.config.instance = os.getenv('PYMSSQL_TEST_INSTANCE') or _parser.get(section, 'instance')
-    th.config.orig_decimal_prec = decimal.getcontext().prec
+    config.server = os.getenv('PYMSSQL_TEST_SERVER') or _parser.get(section, 'server')
+    config.user = os.getenv('PYMSSQL_TEST_USERNAME') or _parser.get(section, 'username')
+    config.password = os.getenv('PYMSSQL_TEST_PASSWORD') or _parser.get(section, 'password')
+    config.database = os.getenv('PYMSSQL_TEST_DATABASE') or _parser.get(section, 'database')
+    config.port = os.getenv('PYMSSQL_TEST_PORT') or _parser.get(section, 'port')
+    config.ipaddress = os.getenv('PYMSSQL_TEST_IPADDRESS') or _parser.get(section, 'ipaddress')
+    config.instance = os.getenv('PYMSSQL_TEST_INSTANCE') or _parser.get(section, 'instance')
+    config.orig_decimal_prec = decimal.getcontext().prec
 
     for marker, info in optional_markers.items():
         config.addinivalue_line("markers",
@@ -119,7 +205,7 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     # Check if MSSQL server is available
     try:
-        test_conn = th.mssqlconn()
+        test_conn = mssqlconn()
         mssql_available = True
         test_conn.close()
     except Exception:
