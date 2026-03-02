@@ -19,6 +19,22 @@ cfgpath = os.path.join(cdir, 'tests.cfg')
 def mssql_conn():
     return th.mssqlconn()
 
+
+@pytest.fixture(scope="module")
+def sql_server_version(mssql_conn):
+    """Fixture providing SQL Server version."""
+    return th.get_sql_server_version(mssql_conn)
+
+
+@pytest.fixture(scope="module")
+def datetime2_supported(mssql_conn, sql_server_version):
+    """Check if DATETIME2 is supported (SQL Server 2008+ and TDS 7.3+)."""
+    if sql_server_version < 2008:
+        pytest.skip("DATETIME2 field type isn't supported by SQL Server versions prior to 2008.")
+    if mssql_conn.tds_version < 7.3:
+        pytest.skip("DATETIME2 field type isn't supported by TDS protocol older than 7.3.")
+    return True
+
 _parser = ConfigParser({
     'server': 'localhost',
     'username': 'sa',
