@@ -9,7 +9,7 @@ import pytest
 
 import pymssql as pym
 
-from .conftest import config, pymssqlconn
+from .conftest import pymssqlconn
 
 
 class TestDBAPI2:
@@ -101,81 +101,81 @@ def test_rollback_after_create_error(pymssql_conn_function, users_table):
 
 
 @pytest.mark.mssql_server_required
-def test_conn_props_override():
+def test_conn_props_override(test_cfg):
     """Test connection properties override."""
     conn = pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties='SET TEXTSIZE 2147483647'
     )
     conn.close()
 
     conn = pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties='SET TEXTSIZE 2147483647;'
     )
     conn.close()
 
     conn = pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties='SET TEXTSIZE 2147483647;SET ANSI_NULLS ON;'
     )
     conn.close()
 
     conn = pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties='SET TEXTSIZE 2147483647;SET ANSI_NULLS ON'
     )
     conn.close()
 
     conn = pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties='SET TEXTSIZE 2147483647;SET ANSI_NULLS ON;'
     )
     conn.close()
 
     conn = pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties=['SET TEXTSIZE 2147483647;', 'SET ANSI_NULLS ON']
     )
     conn.close()
     assert Exception, pym.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         conn_properties='BOGUS SQL'
     )
 
     conn = pym.connect(
         conn_properties='SET TEXTSIZE 2147483647',
-        server=config.server,
-        user=config.user,
-        password=config.password
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password
     )
     conn.close()
 

@@ -5,8 +5,6 @@ Test user message handler.
 
 import pytest
 
-from .helpers import config
-
 msgs = []
 
 
@@ -61,7 +59,7 @@ class TestUserMsgHandler:
         delta = msgs_after - msgs_before
         assert delta == 0
 
-    def test_change_handler(self, conn):
+    def test_change_handler(self, conn, test_cfg):
         conn.set_msghandler(user_msg_handler1)
         msgs_before = len(msgs)
         conn.execute_non_query("USE master")
@@ -74,15 +72,15 @@ class TestUserMsgHandler:
 
         conn.set_msghandler(user_msg_handler2)
         msgs_before = len(msgs)
-        conn.execute_non_query("USE %s" % config.database)
+        conn.execute_non_query("USE %s" % test_cfg.database)
         msgs_after = len(msgs)
         delta = msgs_after - msgs_before
         assert delta == 1
         expect = ("msg_handler2: msgstate = 1, severity = 0, procname = ''"
-                  ", line = 1, msgtext = 'Changed database context to '%s'.'") % config.database
+                  ", line = 1, msgtext = 'Changed database context to '%s'.'") % test_cfg.database
         assert expect == msgs[msgs_after - 1]
 
-    def test_per_conn_handlers(self, mssql_conn):
+    def test_per_conn_handlers(self, mssql_conn, test_cfg):
         cnx1 = mssql_conn
         cnx2 = mssql_conn
         cnx1.set_msghandler(user_msg_handler1)
@@ -97,12 +95,12 @@ class TestUserMsgHandler:
 
         cnx2.set_msghandler(user_msg_handler2)
         msgs_before = len(msgs)
-        cnx2.execute_non_query("USE %s" % config.database)
+        cnx2.execute_non_query("USE %s" % test_cfg.database)
         msgs_after = len(msgs)
         delta = msgs_after - msgs_before
         assert delta == 1
         expect = ("msg_handler2: msgstate = 1, severity = 0, procname = ''"
-                  ", line = 1, msgtext = 'Changed database context to '%s'.'") % config.database
+                  ", line = 1, msgtext = 'Changed database context to '%s'.'") % test_cfg.database
         assert expect == msgs[msgs_after - 1]
 
     @staticmethod

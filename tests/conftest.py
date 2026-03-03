@@ -34,17 +34,23 @@ class Config:
 
 
 # Global config instance
-config = Config()
+test_config = Config()
+
+
+@pytest.fixture(scope="session")
+def test_cfg():
+    """Fixture providing test configuration (connection settings)."""
+    return test_config
 
 
 def mssqlconn(conn_properties=None):
     """Create a _mssql.MSSQLConnection."""
     return _mssql.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_config.server,
+        user=test_config.user,
+        password=test_config.password,
+        database=test_config.database,
+        port=test_config.port,
         conn_properties=conn_properties
     )
 
@@ -52,11 +58,11 @@ def mssqlconn(conn_properties=None):
 def pymssqlconn(**kwargs):
     """Create a pymssql.Connection."""
     return pymssql.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_config.server,
+        user=test_config.user,
+        password=test_config.password,
+        database=test_config.database,
+        port=test_config.port,
         **kwargs
     )
 
@@ -186,20 +192,24 @@ def pytest_configure(config):
     else:
         section = 'DEFAULT'
 
-    config.server = os.getenv('PYMSSQL_TEST_SERVER') or _parser.get(section, 'server')
-    config.user = os.getenv('PYMSSQL_TEST_USERNAME') or _parser.get(section, 'username')
-    config.password = os.getenv('PYMSSQL_TEST_PASSWORD') or _parser.get(section, 'password')
-    config.database = os.getenv('PYMSSQL_TEST_DATABASE') or _parser.get(section, 'database')
-    config.port = os.getenv('PYMSSQL_TEST_PORT') or _parser.get(section, 'port')
-    config.ipaddress = os.getenv('PYMSSQL_TEST_IPADDRESS') or _parser.get(section, 'ipaddress')
-    config.instance = os.getenv('PYMSSQL_TEST_INSTANCE') or _parser.get(section, 'instance')
-    config.orig_decimal_prec = decimal.getcontext().prec
+    test_config.server = os.getenv('PYMSSQL_TEST_SERVER') or _parser.get(section, 'server')
+    test_config.user = os.getenv('PYMSSQL_TEST_USERNAME') or _parser.get(section, 'username')
+    test_config.password = os.getenv('PYMSSQL_TEST_PASSWORD') or _parser.get(section, 'password')
+    test_config.database = os.getenv('PYMSSQL_TEST_DATABASE') or _parser.get(section, 'database')
+    test_config.port = os.getenv('PYMSSQL_TEST_PORT') or _parser.get(section, 'port')
+    test_config.ipaddress = os.getenv('PYMSSQL_TEST_IPADDRESS') or _parser.get(section, 'ipaddress')
+    test_config.instance = os.getenv('PYMSSQL_TEST_INSTANCE') or _parser.get(section, 'instance')
+    test_config.orig_decimal_prec = decimal.getcontext().prec
 
     for marker, info in optional_markers.items():
         config.addinivalue_line("markers",
                                 "{}: {}".format(marker, info['marker-descr']))
 
-    clear_db()
+    # Try to clear DB if available, but don't fail if no connection
+    try:
+        clear_db()
+    except Exception:
+        pass
 
 
 def pytest_collection_modifyitems(config, items):

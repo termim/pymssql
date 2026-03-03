@@ -4,15 +4,14 @@ import decimal
 from decimal import Decimal as D
 from hashlib import md5
 import pickle
-import sys
 import unittest
 import uuid
 
 import pytest
 
 import pymssql
-from .helpers import get_sql_server_version, mssql_server_required
-from .helpers import drop_table, mssqlconn, clear_table, config, eq_, pymssqlconn
+from .conftest import test_config
+from .helpers import drop_table, mssqlconn, clear_table, eq_, pymssqlconn
 
 
 def get_bytes_buffer():
@@ -168,7 +167,7 @@ class TestTypes(unittest.TestCase):
 
         # make sure our manipulation of the decimal values doesn't affect the
         # default decimal context
-        eq_(decimal.getcontext().prec, config.orig_decimal_prec)
+        eq_(decimal.getcontext().prec, test_config.orig_decimal_prec)
 
     def test_decimal_rounding_up(self):
         # test rounding up

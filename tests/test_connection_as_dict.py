@@ -9,37 +9,39 @@ import pytest
 
 import pymssql
 
-from .helpers import config
 
-def pymssqlconn(**kwargs):
+def pymssqlconn(test_cfg, **kwargs):
     return pymssql.connect(
-            server=config.server,
-            user=config.user,
-            password=config.password,
-            database=config.database,
-            port=config.port,
+            server=test_cfg.server,
+            user=test_cfg.user,
+            password=test_cfg.password,
+            database=test_cfg.database,
+            port=test_cfg.port,
             **kwargs
         )
 
 
+@pytest.fixture
+def conn_as_dict(test_cfg):
+    """Fixture providing pymssql.Connection with as_dict=True."""
+    return pymssqlconn(test_cfg, as_dict=True)
+
+
 @pytest.mark.mssql_server_required
-class TestConnectionAsDict(unittest.TestCase):
+class TestConnectionAsDict:
 
-    def setUp(self):
-        self.conn = pymssqlconn(as_dict=True)
-
-    def test_fetchall_with_connection_as_dict(self):
+    def test_fetchall_with_connection_as_dict(self, conn_as_dict):
         # This test is for http://code.google.com/p/pymssql/issues/detail?id=18
-        cursor = self.conn.cursor()
+        cursor = conn_as_dict.cursor()
         cursor.execute("SELECT 'foo' AS first_name, 'bar' AS last_name")
         data = cursor.fetchall()
-        self.assertEqual(data, [{'first_name': 'foo', 'last_name': 'bar'}])
+        assert data == [{'first_name': 'foo', 'last_name': 'bar'}]
 
-    def test_no_results_with_connection_as_dict(self):
+    def test_no_results_with_connection_as_dict(self, conn_as_dict):
         # Make sure that checking for columns without names doesn't break
         # statements that don't return results
 
-        cursor = self.conn.cursor()
+        cursor = conn_as_dict.cursor()
         cursor.execute("""
         CREATE TABLE daily_measurement (
             datetime DATETIME,
@@ -47,4 +49,3 @@ class TestConnectionAsDict(unittest.TestCase):
             notes VARCHAR,
         )
         """)
-

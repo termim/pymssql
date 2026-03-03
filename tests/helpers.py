@@ -23,8 +23,7 @@ def mark_slow(f):
 mssql_server_required = pytest.mark.mssql_server_required
 
 
-# Backward compatibility - import from conftest.py
-from .conftest import config, mssqlconn, pymssqlconn, clear_db
+from .conftest import mssqlconn, pymssqlconn, clear_db
 
 
 def drop_table(conn, tname):

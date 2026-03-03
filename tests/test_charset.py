@@ -5,18 +5,17 @@ Test charset usage in queries.
 
 import pytest
 import pymssql
-from .helpers import config
 
 
 @pytest.fixture
-def conn_with_charset():
+def conn_with_charset(test_cfg):
     """Fixture providing pymssql.Connection with WINDOWS-1251 charset."""
     conn = pymssql.connect(
-        server=config.server,
-        user=config.user,
-        password=config.password,
-        database=config.database,
-        port=config.port,
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password,
+        database=test_cfg.database,
+        port=test_cfg.port,
         charset='WINDOWS-1251',
     )
     yield conn

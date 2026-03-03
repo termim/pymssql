@@ -13,20 +13,20 @@ import pytest
 
 from pymssql import _mssql
 
-from .conftest import config, mssqlconn
+from .conftest import mssqlconn
 
 
 @pytest.fixture
-def conn_params():
+def conn_params(test_cfg):
     """Fixture providing connection parameters."""
     return {
-        'server': config.server,
-        'username': config.user,
-        'password': config.password,
-        'database': config.database,
-        'port': config.port,
-        'ipaddress': config.ipaddress,
-        'instance': config.instance,
+        'server': test_cfg.server,
+        'username': test_cfg.user,
+        'password': test_cfg.password,
+        'database': test_cfg.database,
+        'port': test_cfg.port,
+        'ipaddress': test_cfg.ipaddress,
+        'instance': test_cfg.instance,
     }
 
 
@@ -143,7 +143,7 @@ def test_valid_tds_version_property(mssql_conn_function):
 
 
 @pytest.mark.mssql_server_required
-def test_conn_props_override():
+def test_conn_props_override(test_cfg):
     """Test connection properties override."""
     conn = mssqlconn(conn_properties='SET TEXTSIZE 2147483647')
     conn.close()
@@ -167,9 +167,9 @@ def test_conn_props_override():
 
     conn = _mssql.connect(
         conn_properties='SET TEXTSIZE 2147483647',
-        server=config.server,
-        user=config.user,
-        password=config.password
+        server=test_cfg.server,
+        user=test_cfg.user,
+        password=test_cfg.password
     )
     conn.close()
 
