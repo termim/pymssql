@@ -51,13 +51,52 @@ jobs:
           name: pymssql-sdist-${{ github.sha }}
           path: wheelhouse
 
-  free_threaded:
-    name: Free-threaded CPython ${{ matrix.python-version }}
+  free_threaded_wheels:
+    name: Free-threaded Linux wheel ${{ matrix.only }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13t", "3.14t", "3.15t"]
+        only: ["cp314t-manylinux_x86_64", "cp315t-manylinux_x86_64"]
+    services:
+      SQLServer:
+        image: mcr.microsoft.com/mssql/server:2017-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: sqlServerPassw0rd
+        ports:
+          - 1433:1433
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and test free-threaded wheel
+        uses: pypa/cibuildwheel@v4.2.1
+        with:
+          only: ${{ matrix.only }}
+        env:
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_ENVIRONMENT_LINUX: >-
+            PYTHON_GIL=0
+            PYMSSQL_FREETDS=./deps
+            LD_LIBRARY_PATH=./deps/lib
+            CFLAGS=-Wno-incompatible-pointer-types
+            PYMSSQL_TEST_SERVER=localhost
+            PYMSSQL_TEST_USERNAME=sa
+            PYMSSQL_TEST_PASSWORD=sqlServerPassw0rd
+            PYMSSQL_TEST_DATABASE=tempdb
+          CIBW_TEST_COMMAND: >-
+            python -m pytest -sv
+            {project}/tests/test_gil_safety.py
+            {project}/tests/test_free_threaded.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: freethreaded-linux-wheels-${{ matrix.only }}
+          path: wheelhouse
+
+  free_threaded_313:
+    name: Free-threaded CPython 3.13t tests
+    runs-on: ubuntu-latest
     env:
       PYTHON_GIL: "0"
       PYMSSQL_TEST_SERVER: localhost
@@ -76,18 +115,16 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13t"
       - name: Install FreeTDS build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libkrb5-dev libssl-dev
+      - name: Build FreeTDS
+        run: python dev/build.py --prefix=./deps --enable-krb5 --static-freetds
       - name: Build and install pymssql
         env:
-          LINK_FREETDS_STATICALLY: "YES"
-          LINK_KRB5: "YES"
-          LINK_OPENSSL: "YES"
-          PYMSSQL_FREETDS_INCLUDEDIR: /usr/include
-          PYMSSQL_FREETDS_LIBDIR: /usr/lib/x86_64-linux-gnu
+          PYMSSQL_FREETDS: ./deps
         run: python -m pip install .
       - name: Install test dependencies
         run: python -m pip install -r dev/requirements-test-base.txt
@@ -263,7 +300,7 @@ jobs:
           path: wheelhouse
 
   merge_wheels:
-    needs: [build_wheels, build_wheels_2, build_wheels_windows, build_freethreaded_wheels]
+    needs: [build_wheels, build_wheels_2, build_wheels_windows, build_freethreaded_wheels, free_threaded_wheels]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/upload-artifact/merge@v7
