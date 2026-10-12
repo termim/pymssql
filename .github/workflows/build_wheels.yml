@@ -216,8 +216,54 @@ jobs:
           name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: wheelhouse
 
+  build_freethreaded_wheels:
+    name: Free-threaded wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            arch: arm64
+          - os: macos-15-intel
+            arch: x86_64
+          - os: windows-latest
+            arch: AMD64
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Install OpenSSL
+        if: runner.os == 'Windows'
+        run: choco install openssl
+
+      - name: Install gperf
+        if: runner.os == 'Windows'
+        run: choco install gperf
+
+      - name: Build and test free-threaded wheels
+        uses: pypa/cibuildwheel@v4.2.1
+        env:
+          CIBW_BUILD: "cp313t-* cp314t-* cp315t-*"
+          CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
+          CIBW_ENVIRONMENT_MACOS: "PYTHON_GIL=0"
+          CIBW_ENVIRONMENT_WINDOWS: "PYTHON_GIL=0"
+          CIBW_TEST_COMMAND: >-
+            python -m pytest
+            {project}/tests/test_gil_safety.py::test_extensions_import_without_enabling_gil
+            {project}/tests/test_gil_safety.py::test_gil_remains_disabled_after_import
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: freethreaded-wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: wheelhouse
+
   merge_wheels:
-    needs: [build_wheels, build_wheels_2, build_wheels_windows]
+    needs: [build_wheels, build_wheels_2, build_wheels_windows, build_freethreaded_wheels]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/upload-artifact/merge@v7
