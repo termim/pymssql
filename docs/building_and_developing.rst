@@ -163,6 +163,27 @@ Run::
 for supported options.
 
 
+Free-threaded CPython
+_____________________
+
+The Cython extensions declare compatibility with free-threaded CPython. This
+build and test path has been verified locally with CPython 3.14.6 on Linux.
+The CI workflow builds and tests pymssql with the free-threaded variants of
+CPython 3.13, 3.14, and 3.15 on Linux.
+
+Build pymssql with a free-threaded CPython environment and configure a SQL
+Server test database. For example, after activating the environment and
+installing the build and test requirements::
+
+    python setup.py build_ext --inplace
+    PYTHON_GIL=0 PYTHONPATH=src pytest -sv \
+        tests/test_gil_safety.py tests/test_free_threaded.py
+
+The import tests check that loading both extensions leaves the GIL disabled.
+The concurrency tests require SQL Server and verify simultaneous use of
+independent connections. They do not promise that a connection can be shared
+between threads; pymssql continues to report DB-API ``threadsafety = 1``.
+
 Testing
 _______
 

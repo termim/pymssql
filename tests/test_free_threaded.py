@@ -121,21 +121,17 @@ class FreeThreadedTests(unittest.TestCase):
 
         self.assertEqual(len(exceptions), 0)
 
-    def test_connection_pool_simulation(self):
-        """Simulate connection pool usage without GIL."""
-        pool_size = 5
+    def test_concurrent_independent_connections(self):
+        """Run concurrent operations on independent connections."""
         num_operations = 100
         exceptions = []
 
-        # Create connection pool
-        connections = [mssqlconn() for _ in range(pool_size)]
-
         def pool_operation(op_id):
             try:
-                # Simulate getting connection from pool
-                conn = connections[op_id % pool_size]
-                result = conn.execute_scalar('SELECT %d', (op_id,))
-                assert result == op_id
+                # Each concurrent operation gets an independent connection.
+                with mssqlconn() as conn:
+                    result = conn.execute_scalar('SELECT %d', (op_id,))
+                    assert result == op_id
             except Exception as exc:
                 exceptions.append(exc)
 
@@ -147,9 +143,6 @@ class FreeThreadedTests(unittest.TestCase):
 
         for thread in threads:
             thread.join(timeout=30)
-
-        for conn in connections:
-            conn.close()
 
         self.assertEqual(len(exceptions), 0)
 

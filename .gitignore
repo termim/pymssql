@@ -4,7 +4,7 @@ build
 a.out
 tmp/
 tests/tests.cfg
-*.venv
+*.venv*
 *.pyc
 .tox
 dist
