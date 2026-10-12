@@ -168,10 +168,10 @@ _____________________
 
 The Cython extensions declare compatibility with free-threaded CPython. This
 build and test path has been verified locally with CPython 3.14.6 on Linux.
-The CI workflow builds and tests free-threaded wheels for CPython 3.13, 3.14,
-and 3.15 on Linux, macOS, and Windows. On macOS and Windows, the wheel tests
-verify extension imports with the GIL disabled. SQL Server-backed concurrency
-tests run on Linux.
+The CI workflow builds and tests free-threaded CPython 3.13, 3.14, and 3.15
+on Linux. It builds free-threaded wheels for CPython 3.14 and 3.15 on macOS
+and Windows, where the wheel tests verify extension imports with the GIL
+disabled. SQL Server-backed concurrency tests run on Linux.
 
 Build pymssql with a free-threaded CPython environment and configure a SQL
 Server test database. For example, after activating the environment and
