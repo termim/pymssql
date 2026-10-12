@@ -168,8 +168,10 @@ _____________________
 
 The Cython extensions declare compatibility with free-threaded CPython. This
 build and test path has been verified locally with CPython 3.14.6 on Linux.
-The CI workflow builds and tests free-threaded CPython 3.13, 3.14, and 3.15
-on Linux. It builds free-threaded wheels for CPython 3.14 and 3.15 on macOS
+The CI workflow builds and tests free-threaded CPython 3.14 and 3.15 Linux
+wheels with cibuildwheel. CPython 3.13t is tested in a direct Linux build
+because cibuildwheel 4.x does not provide a 3.13t build identifier. The
+workflow also builds free-threaded wheels for CPython 3.14 and 3.15 on macOS
 and Windows, where the wheel tests verify extension imports with the GIL
 disabled. SQL Server-backed concurrency tests run on Linux.
 
