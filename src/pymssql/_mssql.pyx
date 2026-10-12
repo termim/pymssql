@@ -10,12 +10,13 @@ This is an effort to convert the pymssql low-level C module to Cython.
 #
 
 # cython: language_level=3
+# cython: freethreading_compatible=True
 # cython: gil_strict
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
 
-from threading import Lock
+from threading import Lock, RLock
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -93,6 +94,9 @@ cdef list connection_object_list = list()
 
 # Lock for thread-safe access to connection_object_list (free-threaded support)
 cdef object connection_list_lock = Lock()
+cdef object fallback_error_lock = RLock()
+cdef object wait_callback_lock = Lock()
+cdef object login_timeout_lock = Lock()
 
 # Store the 32bit int limit values
 cdef int MAX_INT = 2147483647
@@ -217,6 +221,9 @@ cdef class MSSQLDatabaseException(MSSQLException):
     cdef readonly char *text
     cdef readonly char *srvname
     cdef readonly char *procname
+    cdef object _text_ref
+    cdef object _srvname_ref
+    cdef object _procname_ref
 
     property message:
 
@@ -236,12 +243,14 @@ login_timeout = 60
 
 min_error_severity = 6
 
-wait_callback = None
+cdef object _wait_callback = None
 
 def set_wait_callback(a_callable):
-    global wait_callback
+    global _wait_callback
 
-    wait_callback = a_callable
+    with wait_callback_lock:
+        log("_mssql.set_wait_callback() updating callback")
+        _wait_callback = a_callable
 
 # Buffer size for large numbers
 cdef enum: NUMERIC_BUF_SZ = 45
@@ -257,20 +266,60 @@ cdef void log(char * message, ...):
     if PYMSSQL_DEBUG == 1:
         fprintf(stderr, "+++ %s\n", message)
 
+cdef void store_error(char *message_buffer, int *message_no,
+        int *message_severity, int *message_state, int severity,
+        int dberr, int oserr, char *dberrstr, char *oserrstr) noexcept:
+    cdef char message[PYMSSQL_MSGSIZE]
+
+    if severity > message_severity[0]:
+        message_severity[0] = severity
+        message_no[0] = dberr
+        message_state[0] = oserr
+
+    if oserr != DBNOERR and oserr != 0:
+        if severity == EXCOMM:
+            snprintf(
+                message, sizeof(message),
+                '%sDB-Lib error message %d, severity %d:\n%s\nNet-Lib error during %s (%d)\n',
+                message_buffer, dberr, severity, dberrstr, oserrstr, oserr)
+        else:
+            snprintf(
+                message, sizeof(message),
+                '%sDB-Lib error message %d, severity %d:\n%s\nOperating System error during %s (%d)\n',
+                message_buffer, dberr, severity, dberrstr, oserrstr, oserr)
+    else:
+        snprintf(
+            message, sizeof(message),
+            '%sDB-Lib error message %d, severity %d:\n%s\n',
+            message_buffer, dberr, severity, dberrstr)
+
+    strncpy(message_buffer, message, PYMSSQL_MSGSIZE)
+    message_buffer[PYMSSQL_MSGSIZE - 1] = b'\0'
+
+cdef void store_message(char *message_buffer, char *server_buffer,
+        char *procedure_buffer, int *message_no, int *message_severity,
+        int *message_state, int *message_line, int severity, DBINT msgno,
+        int msgstate, char *msgtext, char *srvname, char *procname,
+        LINE_T line) noexcept:
+    if severity > message_severity[0]:
+        message_severity[0] = severity
+        message_no[0] = msgno
+        message_state[0] = msgstate
+        message_line[0] = line
+        strncpy(message_buffer, msgtext, PYMSSQL_MSGSIZE)
+        strncpy(server_buffer, srvname, PYMSSQL_MSGSIZE)
+        strncpy(procedure_buffer, procname, PYMSSQL_MSGSIZE)
+
 
 ###################
 ## Error Handler ##
 ###################
 cdef int err_handler(DBPROCESS *dbproc, int severity, int dberr, int oserr,
         char *dberrstr, char *oserrstr) noexcept with gil:
-    cdef char *mssql_lastmsgstr
-    cdef int *mssql_lastmsgno
-    cdef int *mssql_lastmsgseverity
-    cdef int *mssql_lastmsgstate
     cdef int _min_error_severity = min_error_severity
-    cdef object conn = None
+    cdef MSSQLConnection conn = None
+    cdef MSSQLConnection candidate
     cdef bint dbproc_dead = False
-    cdef char mssql_message[PYMSSQL_MSGSIZE]
 
     if severity < _min_error_severity:
         return INT_CANCEL
@@ -282,58 +331,40 @@ cdef int err_handler(DBPROCESS *dbproc, int severity, int dberr, int oserr,
 
     if (PYMSSQL_DEBUG == 1 or PYMSSQL_DEBUG_ERRORS == 1):
         fprintf(stderr, "\n*** err_handler(dbproc = %p, severity = %d,  " \
-            "dberr = %d, oserr = %d, dberrstr = '%s',  oserrstr = '%s'); " \
+            " dberr = %d, oserr = %d, dberrstr = '%s',  oserrstr = '%s'); " \
             "DBDEAD(dbproc) = %d\n", <void *>dbproc, severity, dberr,
             oserr, dberrstr, oserrstr, DBDEAD(dbproc));
-        fprintf(stderr, "*** previous max severity = %d\n\n",
-            _mssql_last_msg_severity);
-
-    mssql_lastmsgstr = _mssql_last_msg_str
-    mssql_lastmsgno = &_mssql_last_msg_no
-    mssql_lastmsgseverity = &_mssql_last_msg_severity
-    mssql_lastmsgstate = &_mssql_last_msg_state
 
     # Lock for thread-safe access to connection_object_list
     with connection_list_lock:
-        for conn in connection_object_list:
-            if dbproc != (<MSSQLConnection>conn).dbproc:
-                continue
-            mssql_lastmsgstr = (<MSSQLConnection>conn).last_msg_str
-            mssql_lastmsgno = &(<MSSQLConnection>conn).last_msg_no
-            mssql_lastmsgseverity = &(<MSSQLConnection>conn).last_msg_severity
-            mssql_lastmsgstate = &(<MSSQLConnection>conn).last_msg_state
-            if DBDEAD(dbproc):
-                dbproc_dead = True
-            break
+        if dbproc != NULL:
+            for candidate in connection_object_list:
+                if dbproc != candidate.dbproc:
+                    continue
+                conn = candidate
+                if DBDEAD(dbproc):
+                    dbproc_dead = True
+                break
 
-    if dbproc_dead:
+    if dbproc_dead and conn is not None:
         log("+++ [FIX:1018] err_handler: dbproc is dead; killing conn...\n")
         conn.mark_disconnected()
 
-    if severity > mssql_lastmsgseverity[0]:
-        mssql_lastmsgseverity[0] = severity
-        mssql_lastmsgno[0] = dberr
-        mssql_lastmsgstate[0] = oserr
-
-    if oserr != DBNOERR and oserr != 0:
-        if severity == EXCOMM:
-            snprintf(
-                mssql_message, sizeof(mssql_message),
-                '%sDB-Lib error message %d, severity %d:\n%s\nNet-Lib error during %s (%d)\n',
-                mssql_lastmsgstr, dberr, severity, dberrstr, oserrstr, oserr)
-        else:
-            snprintf(
-                mssql_message, sizeof(mssql_message),
-                '%sDB-Lib error message %d, severity %d:\n%s\nOperating System error during %s (%d)\n',
-                mssql_lastmsgstr, dberr, severity, dberrstr, oserrstr, oserr)
+    if conn is None:
+        with fallback_error_lock:
+            store_error(
+                _mssql_last_msg_str,
+                &_mssql_last_msg_no,
+                &_mssql_last_msg_severity,
+                &_mssql_last_msg_state,
+                severity, dberr, oserr, dberrstr, oserrstr)
     else:
-        snprintf(
-            mssql_message, sizeof(mssql_message),
-            '%sDB-Lib error message %d, severity %d:\n%s\n',
-            mssql_lastmsgstr, dberr, severity, dberrstr)
-
-    strncpy(mssql_lastmsgstr, mssql_message, PYMSSQL_MSGSIZE)
-    mssql_lastmsgstr[ PYMSSQL_MSGSIZE - 1 ] = b'\0'
+        store_error(
+            conn.last_msg_str,
+            &conn.last_msg_no,
+            &conn.last_msg_severity,
+            &conn.last_msg_state,
+            severity, dberr, oserr, dberrstr, oserrstr)
 
     return INT_CANCEL
 
@@ -344,13 +375,6 @@ cdef int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate,
         int severity, char *msgtext, char *srvname, char *procname,
         LINE_T line) noexcept with gil:
 
-    cdef int *mssql_lastmsgno
-    cdef int *mssql_lastmsgseverity
-    cdef int *mssql_lastmsgstate
-    cdef int *mssql_lastmsgline
-    cdef char *mssql_lastmsgstr
-    cdef char *mssql_lastmsgsrv
-    cdef char *mssql_lastmsgproc
     cdef int _min_error_severity = min_error_severity
     cdef MSSQLConnection conn = None
 
@@ -360,17 +384,15 @@ cdef int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate,
             "srvname = '%s', procname = '%s', line = %d)\n",
             dbproc, msgno, msgstate, severity, msgtext, srvname,
             procname, line);
-        fprintf(stderr, "+++ previous max severity = %d\n\n",
-            _mssql_last_msg_severity)
-
     # Lock for thread-safe access to connection_object_list
     with connection_list_lock:
-        for cnx in connection_object_list:
-            if (<MSSQLConnection>cnx).dbproc != dbproc:
-                continue
+        if dbproc != NULL:
+            for cnx in connection_object_list:
+                if (<MSSQLConnection>cnx).dbproc != dbproc:
+                    continue
 
-            conn = <MSSQLConnection>cnx
-            break
+                conn = <MSSQLConnection>cnx
+                break
 
     if conn is not None and conn.msghandler is not None:
         conn.msghandler(msgstate, severity, srvname, procname, line, msgtext)
@@ -379,33 +401,19 @@ cdef int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate,
         return INT_CANCEL
 
     if conn is not None:
-        mssql_lastmsgstr = conn.last_msg_str
-        mssql_lastmsgsrv = conn.last_msg_srv
-        mssql_lastmsgproc = conn.last_msg_proc
-        mssql_lastmsgno = &conn.last_msg_no
-        mssql_lastmsgseverity = &conn.last_msg_severity
-        mssql_lastmsgstate = &conn.last_msg_state
-        mssql_lastmsgline = &conn.last_msg_line
+        store_message(
+            conn.last_msg_str, conn.last_msg_srv, conn.last_msg_proc,
+            &conn.last_msg_no, &conn.last_msg_severity,
+            &conn.last_msg_state, &conn.last_msg_line, severity,
+            msgno, msgstate, msgtext, srvname, procname, line)
     else:
-        mssql_lastmsgstr = _mssql_last_msg_str
-        mssql_lastmsgsrv = _mssql_last_msg_srv
-        mssql_lastmsgproc = _mssql_last_msg_proc
-        mssql_lastmsgno = &_mssql_last_msg_no
-        mssql_lastmsgseverity = &_mssql_last_msg_severity
-        mssql_lastmsgstate = &_mssql_last_msg_state
-        mssql_lastmsgline = &_mssql_last_msg_line
-
-    # Calculate the maximum severity of all messages in a row
-    # Fill the remaining fields as this is going to raise the exception
-    if severity > mssql_lastmsgseverity[0]:
-        mssql_lastmsgseverity[0] = severity
-        mssql_lastmsgno[0] = msgno
-        mssql_lastmsgstate[0] = msgstate
-        mssql_lastmsgline[0] = line
-        strncpy(mssql_lastmsgstr, msgtext, PYMSSQL_MSGSIZE)
-        strncpy(mssql_lastmsgsrv, srvname, PYMSSQL_MSGSIZE)
-        strncpy(mssql_lastmsgproc, procname, PYMSSQL_MSGSIZE)
-
+        with fallback_error_lock:
+            store_message(
+                _mssql_last_msg_str, _mssql_last_msg_srv,
+                _mssql_last_msg_proc, &_mssql_last_msg_no,
+                &_mssql_last_msg_severity, &_mssql_last_msg_state,
+                &_mssql_last_msg_line, severity, msgno, msgstate,
+                msgtext, srvname, procname, line)
 
     return 0
 
@@ -434,14 +442,18 @@ cdef int db_sqlexec(DBPROCESS *dbproc) except? 0:
 
 cdef int db_sqlok(DBPROCESS *dbproc) except? 0:
     cdef RETCODE rtc
+    cdef object callback
 
     # If there is a wait callback, call it with the file descriptor we're
     # waiting on.
     # The wait_callback is a good place to do things like yield to another
     # gevent greenlet -- e.g.: gevent.socket.wait_read(read_fileno)
-    if wait_callback:
+    with wait_callback_lock:
+        callback = _wait_callback
+    if callback:
         read_fileno = dbiordesc(dbproc)
-        wait_callback(read_fileno)
+        log("_mssql.db_sqlok() invoking wait callback")
+        callback(read_fileno)
 
     # dbsqlok following dbsqlsend is the equivalent of dbsqlexec. This function
     # must be called after dbsqlsend returns SUCCEED. When dbsqlok returns,
@@ -456,12 +468,19 @@ cdef void clr_err(MSSQLConnection conn):
         conn.last_msg_no = 0
         conn.last_msg_severity = 0
         conn.last_msg_state = 0
+        conn.last_msg_line = 0
         conn.last_msg_str[0] = 0
+        conn.last_msg_srv[0] = 0
+        conn.last_msg_proc[0] = 0
     else:
-        _mssql_last_msg_no = 0
-        _mssql_last_msg_severity = 0
-        _mssql_last_msg_state = 0
-        _mssql_last_msg_str[0] = 0
+        with fallback_error_lock:
+            _mssql_last_msg_no = 0
+            _mssql_last_msg_severity = 0
+            _mssql_last_msg_state = 0
+            _mssql_last_msg_line = 0
+            _mssql_last_msg_str[0] = 0
+            _mssql_last_msg_srv[0] = 0
+            _mssql_last_msg_proc[0] = 0
 
 cdef RETCODE db_cancel(MSSQLConnection conn):
     cdef RETCODE rtc
@@ -543,11 +562,17 @@ cdef class MSSQLConnection:
         def __set__(self, value):
             cdef int val = int(value)
             cdef RETCODE rtc
+            cdef bytes timeout_bytes
+            cdef char *timeout_cstr
             if val < 0:
                 raise ValueError("The 'query_timeout' attribute must be >= 0.")
 
-            # XXX: Currently this will set it application wide :-(
-            rtc = dbsettime(val)
+            if val == 0:
+                rtc = dbclropt(self.dbproc, DBSETTIME, NULL)
+            else:
+                timeout_bytes = str(val).encode('ascii')
+                timeout_cstr = timeout_bytes
+                rtc = dbsetopt(self.dbproc, DBSETTIME, timeout_cstr, 0)
             check_and_raise(rtc, self)
 
             # if all is fine then set our attribute
@@ -638,12 +663,14 @@ cdef class MSSQLConnection:
                         charset='UTF-8', database='', appname=None, port='1433',
                         tds_version=None, encryption=None, read_only=False,
                         use_datetime2=False,
-                        conn_properties=None):
+                        conn_properties=None, login_timeout_override=None):
         log("_mssql.MSSQLConnection.__init__()")
 
         cdef LOGINREC *login
+        cdef DBPROCESS *dbproc
         cdef RETCODE rtc
         cdef bytes encryption_bytes
+        cdef int effective_login_timeout
 
         self.use_datetime2 = use_datetime2
 
@@ -724,28 +751,43 @@ cdef class MSSQLConnection:
         if read_only:
             DBSETLREADONLY(login, 1)
 
+        if login_timeout_override is None:
+            effective_login_timeout = int(login_timeout)
+        else:
+            effective_login_timeout = int(login_timeout_override)
+
         # Add ourselves to the global connection list
         with connection_list_lock:
             connection_object_list.append(self)
 
-        # Set the login timeout
-        # XXX: Currently this will set it application wide :-(
-        dbsetlogintime(login_timeout)
+        # dbopen() may invoke callbacks before its DBPROCESS can be associated
+        # with this connection. Keep fallback error state private until this
+        # attempt has either succeeded or copied its error into an exception.
+        with fallback_error_lock:
+            log("[FIX] isolating fallback error state for dbopen()")
+            clr_err(None)
 
-        # Connect to the server
-        with nogil:
-            self.dbproc = dbopen(login, server_cstr)
+            # FreeTDS stores the login timeout process-wide, so keep the value
+            # stable through dbopen(), which copies it into the new connection.
+            with login_timeout_lock:
+                log("_mssql.MSSQLConnection.__init__() setting login timeout")
+                dbsetlogintime(effective_login_timeout)
+                with nogil:
+                    dbproc = dbopen(login, server_cstr)
+                with connection_list_lock:
+                    self.dbproc = dbproc
 
-        # Frees the login record, can be called immediately after dbopen.
-        dbloginfree(login)
+            # Frees the login record, can be called immediately after dbopen.
+            dbloginfree(login)
 
-        if self.dbproc == NULL:
-            log("_mssql.MSSQLConnection.__init__() -> dbopen() returned NULL")
-            with connection_list_lock:
-                if self in connection_object_list:
-                    connection_object_list.remove(self)
-            maybe_raise_MSSQLDatabaseException(None)
-            raise MSSQLDriverException("Connection to the database failed for an unknown reason.")
+            if self.dbproc == NULL:
+                log("[FIX] dbopen() failed; extracting isolated fallback error")
+                with connection_list_lock:
+                    if self in connection_object_list:
+                        connection_object_list.remove(self)
+                maybe_raise_MSSQLDatabaseException(None)
+                raise MSSQLDriverException("Connection to the database failed for an unknown reason.")
+            log("[FIX] dbopen() succeeded; releasing fallback error state")
 
         self._connected = 1
 
@@ -1999,20 +2041,35 @@ cdef int get_last_msg_line(MSSQLConnection conn):
     return conn.last_msg_line if conn != None else _mssql_last_msg_line
 
 cdef int maybe_raise_MSSQLDatabaseException(MSSQLConnection conn) except 1:
+    if conn is None:
+        with fallback_error_lock:
+            if _mssql_last_msg_severity < min_error_severity:
+                return 0
+            return raise_MSSQLDatabaseException(None)
+
     if get_last_msg_severity(conn) < min_error_severity:
         return 0
 
     return raise_MSSQLDatabaseException(conn)
 
 cdef int raise_MSSQLDatabaseException(MSSQLConnection conn) except 1:
+    cdef bytes error_msg
+    cdef bytes server_name
+    cdef bytes procedure_name
+
     error_msg = get_last_msg_str(conn)
+    server_name = get_last_msg_srv(conn)
+    procedure_name = get_last_msg_proc(conn)
     if len(error_msg) == 0:
         error_msg = b"Unknown error"
 
     ex = MSSQLDatabaseException((get_last_msg_no(conn), error_msg))
     (<MSSQLDatabaseException>ex).text = error_msg
-    (<MSSQLDatabaseException>ex).srvname = get_last_msg_srv(conn)
-    (<MSSQLDatabaseException>ex).procname = get_last_msg_proc(conn)
+    (<MSSQLDatabaseException>ex)._text_ref = error_msg
+    (<MSSQLDatabaseException>ex).srvname = server_name
+    (<MSSQLDatabaseException>ex)._srvname_ref = server_name
+    (<MSSQLDatabaseException>ex).procname = procedure_name
+    (<MSSQLDatabaseException>ex)._procname_ref = procedure_name
     (<MSSQLDatabaseException>ex).number = get_last_msg_no(conn)
     (<MSSQLDatabaseException>ex).severity = get_last_msg_severity(conn)
     (<MSSQLDatabaseException>ex).state = get_last_msg_state(conn)
@@ -2327,14 +2384,29 @@ def test_err_handler(connection, int severity, int dberr, int oserr, dberrstr, o
         oserrstrc = oserrstr_byte_string
     if connection:
         dbproc = (<MSSQLConnection>connection).dbproc
-    results = (
-        err_handler(dbproc, severity, dberr, oserr, dberrstrc, oserrstrc),
-        get_last_msg_str(connection),
-        get_last_msg_no(connection),
-        get_last_msg_severity(connection),
-        get_last_msg_state(connection)
-    )
-    clr_err(connection)
+    if connection is None:
+        with fallback_error_lock:
+            handler_result = err_handler(
+                dbproc, severity, dberr, oserr, dberrstrc, oserrstrc)
+            results = (
+                handler_result,
+                get_last_msg_str(None),
+                get_last_msg_no(None),
+                get_last_msg_severity(None),
+                get_last_msg_state(None)
+            )
+            clr_err(None)
+    else:
+        handler_result = err_handler(
+            dbproc, severity, dberr, oserr, dberrstrc, oserrstrc)
+        results = (
+            handler_result,
+            get_last_msg_str(connection),
+            get_last_msg_no(connection),
+            get_last_msg_severity(connection),
+            get_last_msg_state(connection)
+        )
+        clr_err(connection)
     return results
 
 

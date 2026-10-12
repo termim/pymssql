@@ -107,8 +107,6 @@ class MSSQLDatabaseException(MSSQLException):
 
 login_timeout: int
 min_error_severity: int
-wait_callback: Callable[[int], object] | None
-
 def set_wait_callback(a_callable: Callable[[int], object] | None) -> None: ...
 
 class MSSQLRowIterator(Generic[_Row]):
@@ -152,6 +150,7 @@ class MSSQLConnection:
         read_only: bool = False,
         use_datetime2: bool = False,
         conn_properties: str | list[str] | None = None,
+        login_timeout_override: int | None = None,
     ) -> None: ...
     def __dealloc__(self) -> None: ...
     def __enter__(self) -> MSSQLConnection: ...
@@ -410,6 +409,7 @@ def connect(
     read_only: bool = False,
     use_datetime2: bool = False,
     conn_properties: str | list[str] | None = None,
+    login_timeout_override: int | None = None,
 ) -> MSSQLConnection: ...
 
 MssqlDatabaseException = MSSQLDatabaseException

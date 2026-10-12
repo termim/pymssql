@@ -1,4 +1,6 @@
 """DB-SIG compliant module for communicating with MS SQL servers"""
+# cython: freethreading_compatible=True
+
 # pymssql.pyx
 #
 #   Copyright (C) 2003 Joon-cheol Park <jooncheol@gmail.com>
@@ -664,8 +666,6 @@ def connect(server='.', user=None, password=None, database='', timeout=0,
     except ValueError:
         login_timeout = 0
 
-    _mssql.login_timeout = login_timeout
-
     # default query timeout
     try:
         timeout = int(timeout)
@@ -682,7 +682,8 @@ def connect(server='.', user=None, password=None, database='', timeout=0,
                               appname=appname, port=port, tds_version=tds_version,
                               read_only=read_only,
                               use_datetime2=use_datetime2,
-                              conn_properties=conn_properties)
+                              conn_properties=conn_properties,
+                              login_timeout_override=login_timeout)
 
     except _mssql.MSSQLDatabaseException, e:
         raise OperationalError(e.args[0])

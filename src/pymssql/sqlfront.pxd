@@ -482,6 +482,11 @@ cdef extern from "sqlfront.h":
     #     SUCCEED always
     RETCODE dbsettime(int)
 
+    # Configure a timeout for an individual DBPROCESS.
+    RETCODE dbsetopt(DBPROCESS *, int, const char *, int)
+    RETCODE dbclropt(DBPROCESS *, int, const char *)
+    int DBSETTIME
+
     # Send the SQL command to the server and wait for an answer.
     #
     #   Parameters:
