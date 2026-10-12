@@ -289,6 +289,8 @@ jobs:
           CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
           CIBW_ENVIRONMENT_MACOS: "PYTHON_GIL=0"
           CIBW_ENVIRONMENT_WINDOWS: "PYTHON_GIL=0"
+          CIBW_BEFORE_BUILD_MACOS: "brew install openssl libiconv && python dev/build.py --prefix=./deps --static-freetds"
+          CIBW_BEFORE_BUILD_WINDOWS: "python dev/build.py --prefix=./deps"
           CIBW_TEST_COMMAND: >-
             python -m pytest
             {project}/tests/test_gil_safety.py::test_extensions_import_without_enabling_gil
